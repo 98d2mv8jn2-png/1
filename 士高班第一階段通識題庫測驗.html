@@ -46,7 +46,6 @@
             font-size: 1rem;
             outline: none;
             background-color: #fff;
-            transition: border-color 0.2s;
         }
         select:focus, input[type="number"]:focus, textarea:focus { border-color: var(--primary); }
         textarea { resize: vertical; min-height: 120px; font-family: inherit; }
@@ -57,20 +56,7 @@
             margin-top: 0.5rem;
         }
         .grid-item label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; }
-        .range-inputs {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        .range-inputs input { width: 50%; }
-        .total-hint {
-            font-size: 0.9rem;
-            color: var(--primary);
-            font-weight: 600;
-            margin-top: 0.5rem;
-            text-align: right;
-        }
+        .total-hint { font-size: 0.9rem; color: var(--primary); font-weight: 600; margin-top: 0.5rem; text-align: right; }
         .btn {
             display: inline-flex;
             justify-content: center;
@@ -84,7 +70,6 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
         }
         .btn:hover { background-color: var(--primary-hover); }
         .status-badge {
@@ -113,76 +98,44 @@
 <body>
 
 <div class="container">
-    <!-- 設定畫面 -->
     <div id="view-setup">
         <h1>士官高級班通識課程測驗系統</h1>
-        
         <div class="setup-group">
-            <label for="select-mode">測驗模式：</label>
-            <select id="select-mode" onchange="handleModeChange()">
-                <option value="ratio" selected>依難易度配題（自選易/中/難題數）</option>
-                <option value="all">全題庫隨機抽取</option>
-                <option value="custom">自訂指定範圍</option>
-            </select>
-        </div>
-
-        <!-- 難易度自訂配題面板 -->
-        <div id="panel-ratio" class="setup-group">
             <label>設定各難度題數（預設 15 / 10 / 5）：</label>
             <div class="grid-inputs">
                 <div class="grid-item">
-                    <label for="input-easy">易（上限 36）</label>
+                    <label>易（上限 36）</label>
                     <input type="number" id="input-easy" min="0" max="36" value="15" oninput="updateTotalCount()">
                 </div>
                 <div class="grid-item">
-                    <label for="input-mid">中（上限 36）</label>
+                    <label>中（上限 36）</label>
                     <input type="number" id="input-mid" min="0" max="36" value="10" oninput="updateTotalCount()">
                 </div>
                 <div class="grid-item">
-                    <label for="input-hard">難（上限 18）</label>
+                    <label>難（上限 18）</label>
                     <input type="number" id="input-hard" min="0" max="18" value="5" oninput="updateTotalCount()">
                 </div>
             </div>
             <div class="total-hint" id="ratio-total-hint">本次預計測驗：30 題</div>
         </div>
-
-        <!-- 一般題數輸入面板 -->
-        <div id="panel-count" class="setup-group hidden">
-            <label for="input-count">本次測驗總題數（題庫共 90 題）：</label>
-            <input type="number" id="input-count" min="1" max="90" value="30">
-        </div>
-
-        <!-- 自訂題號區間面板 -->
-        <div id="panel-custom" class="setup-group hidden">
-            <label>指定題庫索引區間：</label>
-            <div class="range-inputs">
-                <input type="number" id="custom-start" min="1" max="90" value="1" placeholder="起始">
-                <span>至</span>
-                <input type="number" id="custom-end" min="1" max="90" value="90" placeholder="結束">
-            </div>
-        </div>
-
-        <button class="btn" onclick="startQuiz()" style="margin-top: 1rem;">開始測驗</button>
+        <button class="btn" onclick="startQuiz()">開始測驗</button>
     </div>
 
-    <!-- 答題畫面 -->
     <div id="view-quiz" class="hidden">
         <div class="status-badge" id="quiz-progress">第 1 題 / 共 30 題</div>
         <div class="question-box" id="quiz-question"></div>
         <textarea id="quiz-answer" placeholder="請輸入答案（全半形括號/數字/句號皆可相容）..."></textarea>
         <button class="btn" id="btn-submit" onclick="submitAnswer()" style="margin-top: 1rem;">提交答案</button>
-
         <div id="quiz-feedback" class="feedback hidden"></div>
         <button class="btn hidden" id="btn-next" onclick="nextQuestion()" style="margin-top: 1rem;">下一題</button>
     </div>
 
-    <!-- 結算畫面 -->
     <div id="view-result" class="hidden">
         <h1>測驗結算</h1>
         <div class="stat-card">
             <div>正確率</div>
             <div class="stat-rate" id="res-rate">0%</div>
-            <div id="res-detail" style="color: var(--text-muted); font-size: 0.95rem;">總題數 30 題 ｜ 答對 0 題 ｜ 答錯 0 題</div>
+            <div id="res-detail" style="color: var(--text-muted); font-size: 0.95rem;"></div>
         </div>
         <button class="btn" onclick="restartQuiz()">重新測驗</button>
     </div>
@@ -190,7 +143,6 @@
 
 <script>
 const RAW_QUESTIONS = [
-    // 🟢 易 (36題)
     { diff: "easy", q: "何謂地形五大要素？", a: "（1）觀測與射界。（2）隱蔽與掩蔽。（3）障礙。（4）地形要點。（5）接近路線。" },
     { diff: "easy", q: "兵要調查之種類區分為何？", a: "（1）基本調查。（2）定期調查。（3）不定期調查。（4）特種調查。" },
     { diff: "easy", q: "現行補給前支作業糧秣應運用何種系統完成申補？", a: "後勤資訊系統。" },
@@ -227,8 +179,6 @@ const RAW_QUESTIONS = [
     { diff: "easy", q: "共軍合成營包含哪些單位？", a: "（1）營部。（2）4個坦克連（裝甲步兵連、步兵連）。（3）火力連。（4）支援保障連。" },
     { diff: "easy", q: "情報傳遞內容為何？", a: "（1）何人。（2）何時。（3）何地。（4）何事。（5）為何。" },
     { diff: "easy", q: "教學之實施程序為何？", a: "（1）講解。（2）示範。（3）討論。（4）實作。（5）測驗。（6）結論。（7）檢討與講評。" },
-
-    // 🟡 中 (36題)
     { diff: "mid", q: "試述一、三、五類補給分類區分？", a: "（1）第一類：糧秣。（2）第三類：油料。（3）第五類：彈藥。" },
     { diff: "mid", q: "連隊主官如何運用連主檢系統實施督管作為？", a: "（1）可運用系統查詢「故障回報及待料統計」，掌握並管制當月主檢執行進度。（2）另可查詢「申（撥）補狀況表」，即時掌握料件申補與修復進度。" },
     { diff: "mid", q: "何謂作戰地區？", a: "為上級所賦予之作戰範圍，亦為指揮官能運用其現有戰力，以自行直接左右戰局進行之範圍。" },
@@ -265,8 +215,6 @@ const RAW_QUESTIONS = [
     { diff: "mid", q: "試問軍品整備範圍為何？", a: "各部隊列管之主（重）要武器裝備，包含戰甲砲車、火砲、輕、重兵器、輪型車輛（軍、民用、特種）、光學裝備、工兵裝備、通信裝備、化學裝備、軍醫裝備等。" },
     { diff: "mid", q: "偽裝之定義？", a: "軍事偽裝，即為隱蔽自己，欺騙、引誘及迷惑敵人所採取之各種隱真示假的技術與戰術作為。" },
     { diff: "mid", q: "作戰地區戰地人文分析應包含哪些？", a: "政治、社會、經濟、心理等因素，對作戰行動、勤務支援及政治作戰，影響甚鉅；從事判斷、下達決心與處置時，均須考慮之。" },
-
-    // 🔴 難 (18題)
     { diff: "hard", q: "保密十要項為何？", a: "（1）不洩漏秘密。（2）不探聽秘密。（3）不私藏秘密。（4）不記述秘密。（5）不擅入禁區。（6）要妥管秘密資料。（7）要恪遵保密規定。（8）要防範非法竊取。（9）要檢舉洩密事件。（10）要嚴密保密設備。" },
     { diff: "hard", q: "反情報責任七要項為何？", a: "（1）查誰在洩漏機密。（2）查誰在秘密破壞。（3）查誰的言行反常。（4）查誰在分化團結。（5）查誰在傳播謠言。（6）見可疑追查到底。（7）遇問題立即反映。" },
     { diff: "hard", q: "試述中共網路滲透方式為何？", a: "（1）潛伏網路觀察動態。（2）注蒐官兵公開資訊。（3）杜撰故事伺機接觸。（4）運用交通規避查察。（5）利誘吸收蒐情竊密。" },
@@ -291,39 +239,20 @@ let quizList = [];
 let currentIndex = 0;
 let score = 0;
 
-// 將答案正規化（括號、點號、數字全半形互通，去除空白）
-function normalizeStr(str) {
-    if (!str) return "";
-    return str
-        .replace(/[\(（]/g, '（')
-        .replace(/[\)）]/g, '）')
-        .replace(/[\.．。]/g, '。')
-        .replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 65248)) // 轉全形數字
-        .replace(/\s+/g, '') // 忽略空格
-        .trim();
-}
-
-function handleModeChange() {
-    const mode = document.getElementById('select-mode').value;
-    document.getElementById('panel-ratio').classList.add('hidden');
-    document.getElementById('panel-count').classList.add('hidden');
-    document.getElementById('panel-custom').classList.add('hidden');
-
-    if (mode === 'ratio') {
-        document.getElementById('panel-ratio').classList.remove('hidden');
-        updateTotalCount();
-    } else if (mode === 'all') {
-        document.getElementById('panel-count').classList.remove('hidden');
-    } else if (mode === 'custom') {
-        document.getElementById('panel-custom').classList.remove('hidden');
-    }
+function normalizeStr(s) {
+    return s ? s.replace(/[\(（]/g, '（')
+                .replace(/[\)）]/g, '）')
+                .replace(/[\.．。]/g, '。')
+                .replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 65248))
+                .replace(/\s+/g, '')
+                .trim() : '';
 }
 
 function updateTotalCount() {
-    const easy = parseInt(document.getElementById('input-easy').value, 10) || 0;
-    const mid = parseInt(document.getElementById('input-mid').value, 10) || 0;
-    const hard = parseInt(document.getElementById('input-hard').value, 10) || 0;
-    document.getElementById('ratio-total-hint').textContent = `本次預計測驗：${easy + mid + hard} 題`;
+    const e = parseInt(document.getElementById('input-easy').value, 10) || 0;
+    const m = parseInt(document.getElementById('input-mid').value, 10) || 0;
+    const h = parseInt(document.getElementById('input-hard').value, 10) || 0;
+    document.getElementById('ratio-total-hint').textContent = `本次預計測驗：${e + m + h} 題`;
 }
 
 function escapeHtml(str) {
@@ -331,40 +260,26 @@ function escapeHtml(str) {
 }
 
 function getRandomSubarray(arr, size) {
-    const shuffled = [...arr].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, size);
+    return [...arr].sort(() => 0.5 - Math.random()).slice(0, size);
 }
 
 function startQuiz() {
-    const mode = document.getElementById('select-mode').value;
-    let selected = [];
+    const eC = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), 36);
+    const mC = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), 36);
+    const hC = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), 18);
 
-    if (mode === 'ratio') {
-        const easyCount = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), 36);
-        const midCount = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), 36);
-        const hardCount = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), 18);
+    const easyPool = RAW_QUESTIONS.filter(x => x.diff === 'easy');
+    const midPool = RAW_QUESTIONS.filter(x => x.diff === 'mid');
+    const hardPool = RAW_QUESTIONS.filter(x => x.diff === 'hard');
 
-        const easyPool = RAW_QUESTIONS.filter(x => x.diff === 'easy');
-        const midPool = RAW_QUESTIONS.filter(x => x.diff === 'mid');
-        const hardPool = RAW_QUESTIONS.filter(x => x.diff === 'hard');
-
-        selected = [
-            ...getRandomSubarray(easyPool, easyCount),
-            ...getRandomSubarray(midPool, midCount),
-            ...getRandomSubarray(hardPool, hardCount)
-        ];
-    } else if (mode === 'all') {
-        const count = Math.min(Math.max(1, parseInt(document.getElementById('input-count').value, 10) || 30), 90);
-        selected = getRandomSubarray(RAW_QUESTIONS, count);
-    } else if (mode === 'custom') {
-        let start = (parseInt(document.getElementById('custom-start').value, 10) || 1) - 1;
-        let end = (parseInt(document.getElementById('custom-end').value, 10) || 90);
-        if (start > end) [start, end] = [end, start];
-        selected = RAW_QUESTIONS.slice(Math.max(0, start), Math.min(90, end));
-    }
+    const selected = [
+        ...getRandomSubarray(easyPool, eC),
+        ...getRandomSubarray(midPool, mC),
+        ...getRandomSubarray(hardPool, hC)
+    ];
 
     if (selected.length === 0) {
-        alert("所選設定未包含任何題目！");
+        alert("請至少選擇 1 題！");
         return;
     }
 
@@ -431,14 +346,10 @@ function computeDiff(expected, actual) {
 }
 
 function submitAnswer() {
-    const rawUser = document.getElementById('quiz-answer').value;
-    const rawStd = quizList[currentIndex].a;
-    
-    const normUser = normalizeStr(rawUser);
-    const normStd = normalizeStr(rawStd);
-    
+    const rawU = document.getElementById('quiz-answer').value;
+    const rawS = quizList[currentIndex].a;
     const feedback = document.getElementById('quiz-feedback');
-    const isCorrect = (normUser === normStd);
+    const isCorrect = (normalizeStr(rawU) === normalizeStr(rawS));
 
     document.getElementById('quiz-answer').disabled = true;
     document.getElementById('btn-submit').classList.add('hidden');
@@ -451,12 +362,12 @@ function submitAnswer() {
         feedback.innerHTML = '<div class="feedback-title">✅ 完全正確！一字不漏</div>';
     } else {
         feedback.className = 'feedback wrong';
-        const diff = computeDiff(normStd, normUser);
+        const diff = computeDiff(normalizeStr(rawS), normalizeStr(rawU));
         feedback.innerHTML = `
             <div class="feedback-title">❌ 答案有誤</div>
             <div style="font-weight: 600; margin-top: 0.5rem;">【標準答案】：</div>
-            <div class="diff-view">${rawStd}</div>
-            <div style="font-weight: 600; margin-top: 0.5rem;">【比對錯誤解析（紅底為多打，黃底為漏打）：】：</div>
+            <div class="diff-view">${rawS}</div>
+            <div style="font-weight: 600; margin-top: 0.5rem;">【錯誤比對解析】：</div>
             <div class="diff-view">標準：${diff.standardHtml}<br>作答：${diff.userHtml}</div>
         `;
     }
