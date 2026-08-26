@@ -10,6 +10,7 @@
             --primary-hover: #1d4ed8;
             --success: #15803d;
             --danger: #b91c1c;
+            --warning: #d97706;
             --bg: #f8fafc;
             --card-bg: #ffffff;
             --text: #0f172a;
@@ -46,6 +47,7 @@
             font-size: 1rem;
             outline: none;
             background-color: #fff;
+            transition: border-color 0.2s;
         }
         select:focus, input[type="number"]:focus, textarea:focus { border-color: var(--primary); }
         textarea { resize: vertical; min-height: 120px; font-family: inherit; }
@@ -56,7 +58,20 @@
             margin-top: 0.5rem;
         }
         .grid-item label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; }
-        .total-hint { font-size: 0.9rem; color: var(--primary); font-weight: 600; margin-top: 0.5rem; text-align: right; }
+        .range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .range-inputs input { width: 50%; }
+        .total-hint {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 600;
+            margin-top: 0.5rem;
+            text-align: right;
+        }
         .btn {
             display: inline-flex;
             justify-content: center;
@@ -70,8 +85,14 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
+            transition: background-color 0.2s;
         }
         .btn:hover { background-color: var(--primary-hover); }
+        .btn-warning { background-color: var(--warning); }
+        .btn-warning:hover { background-color: #b45309; }
+        .btn-secondary { background-color: #64748b; }
+        .btn-secondary:hover { background-color: #475569; }
+        .btn-group { display: flex; flex-direction: column; gap: 0.75rem; }
         .status-badge {
             display: inline-block;
             padding: 0.25rem 0.6rem;
@@ -80,14 +101,48 @@
             font-size: 0.9rem;
             font-weight: 600;
             border-radius: 4px;
+        }
+        .quiz-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 1rem;
+        }
+        .mastered-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+        }
+        .mastered-toggle input { cursor: pointer; width: 16px; height: 16px; }
+        .mastered-info-badge {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-text-sm {
+            background: none;
+            border: none;
+            color: #0284c7;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.8rem;
         }
         .question-box { font-size: 1.15rem; font-weight: 600; margin-bottom: 1.25rem; line-height: 1.6; }
         .feedback { margin-top: 1.25rem; padding: 1rem; border-radius: 6px; }
         .feedback.correct { background-color: #dcfce7; border: 1px solid #bbf7d0; color: var(--success); }
         .feedback.wrong { background-color: #fee2e2; border: 1px solid #fecaca; color: var(--danger); }
         .feedback-title { font-weight: bold; font-size: 1.05rem; margin-bottom: 0.5rem; }
-        .diff-view { background: #fff; border: 1px solid var(--border); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.6; }
+        .diff-view { background: #fff; border: 1px solid var(--border); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.6; color: var(--text); }
         .diff-del { background-color: #fecaca; color: #991b1b; text-decoration: line-through; padding: 0 2px; }
         .diff-ins { background-color: #fed7aa; color: #9a3412; font-weight: bold; padding: 0 2px; }
         .stat-card { background-color: #f1f5f9; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: center; }
@@ -98,161 +153,294 @@
 <body>
 
 <div class="container">
+    <!-- 設定畫面 -->
     <div id="view-setup">
         <h1>士官高級班通識課程測驗系統</h1>
+        
+        <div class="mastered-info-badge" id="mastered-badge">
+            <span id="mastered-stat-text">已標記熟記：0 題 / 共 90 題</span>
+            <button class="btn-text-sm" onclick="resetMastered()">清空熟記標記</button>
+        </div>
+
         <div class="setup-group">
+            <label for="select-mode">測驗模式：</label>
+            <select id="select-mode" onchange="handleModeChange()">
+                <option value="ratio" selected>依難易度配題（自選易/中/難題數）</option>
+                <option value="all">全題庫隨機抽取</option>
+                <option value="custom">自訂指定範圍</option>
+            </select>
+        </div>
+
+        <!-- 難易度自訂配題面板 -->
+        <div id="panel-ratio" class="setup-group">
             <label>設定各難度題數（預設 15 / 10 / 5）：</label>
             <div class="grid-inputs">
                 <div class="grid-item">
-                    <label>易（上限 36）</label>
+                    <label for="input-easy">易（上限 36）</label>
                     <input type="number" id="input-easy" min="0" max="36" value="15" oninput="updateTotalCount()">
                 </div>
                 <div class="grid-item">
-                    <label>中（上限 36）</label>
+                    <label for="input-mid">中（上限 36）</label>
                     <input type="number" id="input-mid" min="0" max="36" value="10" oninput="updateTotalCount()">
                 </div>
                 <div class="grid-item">
-                    <label>難（上限 18）</label>
+                    <label for="input-hard">難（上限 18）</label>
                     <input type="number" id="input-hard" min="0" max="18" value="5" oninput="updateTotalCount()">
                 </div>
             </div>
             <div class="total-hint" id="ratio-total-hint">本次預計測驗：30 題</div>
         </div>
-        <button class="btn" onclick="startQuiz()">開始測驗</button>
+
+        <!-- 一般題數輸入面板 -->
+        <div id="panel-count" class="setup-group hidden">
+            <label for="input-count">本次測驗總題數（題庫共 90 題）：</label>
+            <input type="number" id="input-count" min="1" max="90" value="30">
+        </div>
+
+        <!-- 自訂題號區間面板 -->
+        <div id="panel-custom" class="setup-group hidden">
+            <label>指定題庫索引區間：</label>
+            <div class="range-inputs">
+                <input type="number" id="custom-start" min="1" max="90" value="1" placeholder="起始">
+                <span>至</span>
+                <input type="number" id="custom-end" min="1" max="90" value="90" placeholder="結束">
+            </div>
+        </div>
+
+        <button class="btn" onclick="startQuiz()" style="margin-top: 1rem;">開始測驗</button>
     </div>
 
+    <!-- 答題畫面 -->
     <div id="view-quiz" class="hidden">
-        <div class="status-badge" id="quiz-progress">第 1 題 / 共 30 題</div>
+        <div class="quiz-topbar">
+            <div class="status-badge" id="quiz-progress">第 1 題 / 共 30 題</div>
+            <label class="mastered-toggle">
+                <input type="checkbox" id="chk-mastered" onchange="toggleMastered(this.checked)">
+                <span>這題我已背熟</span>
+            </label>
+        </div>
+        
         <div class="question-box" id="quiz-question"></div>
-        <textarea id="quiz-answer" placeholder="請輸入答案（全半形括號/數字/句號皆可相容）..."></textarea>
+        <textarea id="quiz-answer" placeholder="請輸入答案（免標點、免編號、順序不拘皆可自動判定）..."></textarea>
         <button class="btn" id="btn-submit" onclick="submitAnswer()" style="margin-top: 1rem;">提交答案</button>
+
         <div id="quiz-feedback" class="feedback hidden"></div>
         <button class="btn hidden" id="btn-next" onclick="nextQuestion()" style="margin-top: 1rem;">下一題</button>
     </div>
 
+    <!-- 結算畫面 -->
     <div id="view-result" class="hidden">
         <h1>測驗結算</h1>
         <div class="stat-card">
             <div>正確率</div>
             <div class="stat-rate" id="res-rate">0%</div>
-            <div id="res-detail" style="color: var(--text-muted); font-size: 0.95rem;"></div>
+            <div id="res-detail" style="color: var(--text-muted); font-size: 0.95rem;">總題數 30 題 ｜ 答對 0 題 ｜ 答錯 0 題</div>
         </div>
-        <button class="btn" onclick="restartQuiz()">重新測驗</button>
+        
+        <div class="btn-group">
+            <button class="btn btn-warning hidden" id="btn-retry-unmastered" onclick="startWrongReview()">複習本次錯題（僅未熟記）</button>
+            <button class="btn btn-secondary" onclick="restartQuiz()">重新設定 / 再次測驗</button>
+        </div>
     </div>
 </div>
 
 <script>
 const RAW_QUESTIONS = [
-    { diff: "easy", q: "何謂地形五大要素？", a: "（1）觀測與射界。（2）隱蔽與掩蔽。（3）障礙。（4）地形要點。（5）接近路線。" },
-    { diff: "easy", q: "兵要調查之種類區分為何？", a: "（1）基本調查。（2）定期調查。（3）不定期調查。（4）特種調查。" },
-    { diff: "easy", q: "現行補給前支作業糧秣應運用何種系統完成申補？", a: "後勤資訊系統。" },
-    { diff: "easy", q: "計畫之作業格式，其中本文第四段勤務支援內容為何？", a: "（1）人事。（2）後勤。" },
-    { diff: "easy", q: "狀況圖四角註記為何？", a: "（1）右上角：任務。（2）右下角：任務編組。（3）左上角：作戰構想。（4）左下角：附記。" },
-    { diff: "easy", q: "裝備隨裝資料須保存近幾個月份主檢記錄保15-002表及申撥補狀態表備查？", a: "近三個月份。" },
-    { diff: "easy", q: "國軍心理衛生輔導工作三級防處為何？", a: "（1）初級發掘預防。（2）二級介入輔導。（3）三級專業處遇。" },
-    { diff: "easy", q: "國軍官兵輔導類型區分為何？", a: "（1）一般官兵。（2）新進人員。（3）需關懷人員。（4）輔導個案。" },
-    { diff: "easy", q: "國軍三大信念為何？", a: "（1）國家。（2）責任。（3）榮譽。" },
-    { diff: "easy", q: "偽裝主要的運用方式？", a: "（1）隱藏。（2）掩蔽。（3）融合。（4）變化。（5）模仿。（6）群體。" },
-    { diff: "easy", q: "何謂高價值目標？", a: "係指敵軍指揮官為達成任務所需要的主要作戰部隊。" },
-    { diff: "easy", q: "指揮官重要情報需求中反敵偵蒐部分稱為？", a: "保密事項。" },
-    { diff: "easy", q: "目標偵察方式？", a: "（1）地面偵察。（2）空中偵察。（3）衛星偵察。" },
-    { diff: "easy", q: "JCATS系統模擬種類為何？", a: "（1）機動。（2）指揮與管制。（3）火力支援。（4）工兵。（5）後勤。（6）情報。" },
-    { diff: "easy", q: "何謂傳統軍人武德的精神修為？", a: "（1）智者不惑。（2）信者不貳。（3）仁者不憂。（4）勇者不懼。（5）嚴者不私。" },
-    { diff: "easy", q: "偽裝材料之種類？", a: "（1）天然。（2）人工。" },
-    { diff: "easy", q: "任務以五何方式論述，包含哪些？", a: "何人、何時、何地、何事、為何。" },
-    { diff: "easy", q: "領導的要訣為何？以何為根本？", a: "誠、勤、明、公為領導之要訣，而以誠為其根本。" },
-    { diff: "easy", q: "判斷的分類為何？", a: "（1）指揮官（狀況）判斷。（2）參謀（狀況）判斷。" },
-    { diff: "easy", q: "兵棋推演方式有哪幾種？", a: "（1）帶狀法。（2）區塊法。（3）條狀法。" },
-    { diff: "easy", q: "比較行動方案的方法有那幾種？", a: "（1）數值比較法。（2）利弊比較法。（3）廣泛因素比較法。" },
-    { diff: "easy", q: "二級廠運用「連主檢模組」作業流程為何？", a: "（1）缺失審查。（2）估工估料。（3）轉廠申請。" },
-    { diff: "easy", q: "判斷的實施方式為何？", a: "（1）內心判斷。（2）書面判斷。" },
-    { diff: "easy", q: "行「書面判斷」時機為何？", a: "時間充裕狀況複雜，則宜採用完整之書面方式表達之。" },
-    { diff: "easy", q: "行「內心判斷」時機為何？", a: "時間倉促或狀況簡單，可依思維程序行內心推斷。" },
-    { diff: "easy", q: "戰場情報準備將登陸海灘區分哪三種？", a: "（1）紅色海灘。（2）黃色海灘。（3）藍色海灘。" },
-    { diff: "easy", q: "陸軍司令部「連主檢資訊系統」服務對象為何？", a: "（1）連級單位。（2）各督管層級。" },
-    { diff: "easy", q: "後勤區位於作戰區後方地區，包括哪些專業部隊與設施編成，負責作戰區內各部隊後勤支援任務。", a: "（1）補給。（2）油料。（3）保修。（4）運輸。（5）衛勤。（6）彈藥。" },
-    { diff: "easy", q: "支援型態有哪一些？", a: "（1）增援。（2）過境。（3）受增援。" },
-    { diff: "easy", q: "評估敵軍威脅定義？", a: "分析敵軍編裝能力、準則運用、慣用之戰術戰法及特、弱點。" },
-    { diff: "easy", q: "請說明「國軍用兵後勤管理系統—前支作業功能」內管制表如何區分需求處理情形？", a: "（1）綠色燈號：正常無前支需求。（2）黃色燈號：需求處理中，尚未結案。（3）紅色燈號：前支需求尚未處理。" },
-    { diff: "easy", q: "哪種比例尺軍用地圖可知橋梁資訊？", a: "兩萬五千分之一軍用地圖。" },
-    { diff: "easy", q: "物質要發生燃燒，所需要具備之條件為何？", a: "（1）可燃物。（2）助燃物。（3）熱能（溫度）。（4）連鎖反應。" },
-    { diff: "easy", q: "共軍合成營包含哪些單位？", a: "（1）營部。（2）4個坦克連（裝甲步兵連、步兵連）。（3）火力連。（4）支援保障連。" },
-    { diff: "easy", q: "情報傳遞內容為何？", a: "（1）何人。（2）何時。（3）何地。（4）何事。（5）為何。" },
-    { diff: "easy", q: "教學之實施程序為何？", a: "（1）講解。（2）示範。（3）討論。（4）實作。（5）測驗。（6）結論。（7）檢討與講評。" },
-    { diff: "mid", q: "試述一、三、五類補給分類區分？", a: "（1）第一類：糧秣。（2）第三類：油料。（3）第五類：彈藥。" },
-    { diff: "mid", q: "連隊主官如何運用連主檢系統實施督管作為？", a: "（1）可運用系統查詢「故障回報及待料統計」，掌握並管制當月主檢執行進度。（2）另可查詢「申（撥）補狀況表」，即時掌握料件申補與修復進度。" },
-    { diff: "mid", q: "何謂作戰地區？", a: "為上級所賦予之作戰範圍，亦為指揮官能運用其現有戰力，以自行直接左右戰局進行之範圍。" },
-    { diff: "mid", q: "對救災部隊及地方災區補給物資採何種方式執行？", a: "（1）主動運補。（2）前推預置。" },
-    { diff: "mid", q: "安全狀況掌握的步驟為何？", a: "（1）建立官兵正確安全認知。（2）瞭解安全狀況掌握範圍。（3）掌握單位安全危害因素。（4）正視問題有效積極處理。（5）落實狀況處理追蹤機制。" },
-    { diff: "mid", q: "督管單位多久須辦理連主檢系統操作講習及簽證作業乙次？", a: "（1）軍團級每半年。（2）聯兵旅級每季。" },
-    { diff: "mid", q: "人事十大職掌為何？", a: "（1）兵力。（2）兵員補充。（3）法紀維護。（4）特種人員處理。（5）軍墓勤務。（6）人事程序。（7）人事勤務。（8）聘雇人員。（9）內部管理。（10）其他。" },
-    { diff: "mid", q: "部隊指揮程序步驟為何？", a: "（1）受領任務。（2）下達預備命令。（3）擬定初步計畫。（4）處置下列事項。（5）實施偵察。（6）完成計畫。（7）下達命令。（8）督導實施。" },
-    { diff: "mid", q: "平時反情報工作執行要領為何？", a: "（1）確立整體觀念。（2）採取必要手段。（3）樹立保密紀律。（4）嚴密保密措施。（5）做好通信保密。（6）檢舉洩密事件。" },
-    { diff: "mid", q: "戰時反情報工作執行要領為何？", a: "（1）反制敵人組織滲透與破壞。（2）防止潛敵謠言耳語及黑函。（3）內防突變重於外防突擊。（4）戰備整備檢查。（5）協調聯繫憲兵、警察。（6）嚴格銷毀失效保密資料。" },
-    { diff: "mid", q: "安全狀況掌握的要領為何？", a: "（1）掌握時效。（2）內容詳實。（3）注意保密。（4）完善編組。" },
-    { diff: "mid", q: "軍人武德可培養何種信念及精神？", a: "培養「知廉恥、辨生死、負責任、重氣節」的情操，以及服從負責、犧牲奉獻的精神。" },
-    { diff: "mid", q: "「利害地區」幅員大小？", a: "係以「作戰地區」為核心，配合兩個基本概念，即是「早期預警」與「安全應變」。" },
-    { diff: "mid", q: "共軍4大軍種及武警部隊21式作訓服左手臂軍種臂章顏色為何？", a: "（1）陸軍：綠色。（2）海軍：藍白相間。（3）空軍：淺藍色。（4）火箭軍：橘色。（5）武警部隊：紅黑相間。" },
-    { diff: "mid", q: "軍事決心策定程序之階段與內容區分？", a: "（1）受領任務。（2）任務分析。（3）研擬行動方案。（4）分析行動方案。（5）比較行動方案。（6）核准行動方案。（7）頒布計畫。" },
-    { diff: "mid", q: "聯合作戰定義及目的？", a: "凡兩個（含）以上之軍種部隊，執行共同任務，達成同一作戰目的，所遂行之作戰，不論其階層與指揮關係如何，均謂之聯合作戰；聯合作戰在統合運用各軍種、各空間戰力，以達成共同任務為目的。" },
-    { diff: "mid", q: "JCATS主要訓練課目包含哪些？", a: "（1）地面運動。（2）空中機動。（3）空降作戰。（4）城鎮作戰。（5）兩棲作戰。（6）反恐、人質營救。" },
-    { diff: "mid", q: "國軍信念為何？", a: "（1）為何而戰：為中華民國國家生存發展而戰。（2）為誰而戰：為臺澎金馬百姓安全福祉而戰。" },
-    { diff: "mid", q: "作戰判斷之首部，包括哪六項？", a: "（1）單位、判斷類別、編號。（2）受文者。（3）地點。（4）時間。（5）字號。（6）參考資料。" },
-    { diff: "mid", q: "計畫之意義？", a: "計畫乃實現指揮官決心或企圖，所策訂之具體行動方案，為下達命令及指揮作戰準備與實施之準據。" },
-    { diff: "mid", q: "戰備階段之劃分區分哪三個階段？", a: "（1）戰備整備階段。（2）應急作戰階段。（3）全面作戰階段。" },
-    { diff: "mid", q: "請分別回答下列問題：1.FREQ鍵在定明（密）及跳明（密）模式下會出現哪種參數？2.37跳頻機無線電機波道數及預置波道各為多少？", a: "（1）定明（密）：頻率；跳明（密）：跳頻參數。（2）波道數：2320個；預置波道數8個。" },
-    { diff: "mid", q: "何謂後勤判斷？", a: "後勤判斷係依據情報與作戰判斷，分析與研判所有可能影響任務達成之後勤因素，用以判定現有後勤能量能否支援作戰；何案最能獲得後勤有效之支援，並提出克服後勤支援困難之建議。" },
-    { diff: "mid", q: "術科教學法區分哪幾種？", a: "（1）示範摹擬法。（2）觀摩比較法。（3）學生導師法。（4）統一練習法。（5）相互競賽法。（6）對抗演練法。（7）狀況誘導法。（8）檢查糾正法。（9）個別教學法。" },
-    { diff: "mid", q: "陸軍司令部推行「連主檢資訊系統」目的為何？", a: "藉資訊系統驗證各級單位執行成效，並建立自評督管機制，以務實裝備妥善管理。" },
-    { diff: "mid", q: "敘述主檢系統裝備故障報告功能目的？", a: "提供連隊線上回報裝備故障狀況及停用判定；運用系統向二級廠回報裝備檢查缺失，取代原「保15-002表」紙本送交二級廠審查作業。" },
-    { diff: "mid", q: "敘述主檢系統新增損壞查詢功能目的？", a: "運用系統列印當月份新增損壞項目表，由主官批閱管制，取代現行逐份批示保表。" },
-    { diff: "mid", q: "何謂關鍵行動？", a: "綜合分析作戰之「特定行動」及「推斷行動」之必然性、重要性、時序性與限制因素後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
-    { diff: "mid", q: "研擬行動方案步驟，除分析敵、我相對戰力及研擬各種行動方案選項外，還有那些？", a: "（1）初步規劃行動方案所需兵力及部署。（2）研擬行動方案作戰構想。（3）律定行動方案任務編組。（4）完成行動方案文字敘述及圖解標繪。" },
-    { diff: "mid", q: "戰場情報準備作業步驟為何？", a: "（1）界定戰場空間。（2）分析作戰地區。（3）評估敵軍威脅。（4）研判敵可能行動。" },
-    { diff: "mid", q: "何謂接近路線？", a: "供某一適當大小與類型之部隊，用以通達地形要點或目標之一適切而便利之運動路線。" },
-    { diff: "mid", q: "共軍合成旅包含哪些單位？", a: "旅部、4個合成營、偵察營、砲兵營、防空營、作戰支援營、勤務保障營共9個營級單位。" },
-    { diff: "mid", q: "在兵棋推演準備工作中，除準備各項推演工具、列述我軍部隊及列舉假定事項外，還有那些步驟？", a: "（1）列舉已知重大事件及決心點。（2）決定評估要項。（3）選擇兵棋推演模式。（4）選擇記錄及公佈結果方式。" },
-    { diff: "mid", q: "試問軍品整備範圍為何？", a: "各部隊列管之主（重）要武器裝備，包含戰甲砲車、火砲、輕、重兵器、輪型車輛（軍、民用、特種）、光學裝備、工兵裝備、通信裝備、化學裝備、軍醫裝備等。" },
-    { diff: "mid", q: "偽裝之定義？", a: "軍事偽裝，即為隱蔽自己，欺騙、引誘及迷惑敵人所採取之各種隱真示假的技術與戰術作為。" },
-    { diff: "mid", q: "作戰地區戰地人文分析應包含哪些？", a: "政治、社會、經濟、心理等因素，對作戰行動、勤務支援及政治作戰，影響甚鉅；從事判斷、下達決心與處置時，均須考慮之。" },
-    { diff: "hard", q: "保密十要項為何？", a: "（1）不洩漏秘密。（2）不探聽秘密。（3）不私藏秘密。（4）不記述秘密。（5）不擅入禁區。（6）要妥管秘密資料。（7）要恪遵保密規定。（8）要防範非法竊取。（9）要檢舉洩密事件。（10）要嚴密保密設備。" },
-    { diff: "hard", q: "反情報責任七要項為何？", a: "（1）查誰在洩漏機密。（2）查誰在秘密破壞。（3）查誰的言行反常。（4）查誰在分化團結。（5）查誰在傳播謠言。（6）見可疑追查到底。（7）遇問題立即反映。" },
-    { diff: "hard", q: "試述中共網路滲透方式為何？", a: "（1）潛伏網路觀察動態。（2）注蒐官兵公開資訊。（3）杜撰故事伺機接觸。（4）運用交通規避查察。（5）利誘吸收蒐情竊密。" },
-    { diff: "hard", q: "憂鬱症的症狀有哪些？", a: "（1）情緒低落。（2）明顯對事物失去興趣。（3）胃口改變。（4）睡眠習慣改變。（5）動作遲緩或因不安活動量增加。（6）疲倦或失去活力。（7）無價值感或過強的罪惡感。（8）無法有效思考、注意力不集中或猶豫不決。（9）自殺的念頭。" },
-    { diff: "hard", q: "偽裝之基本要求？", a: "（1）掌握敵人偵蒐能力。（2）避免暴露行蹤遭敵偵察。（3）落實偽裝反制偵測。（4）考慮效果，適度偽裝。（5）隱匿企圖減低移防頻率。（6）依需要設置假設施（目標）。（7）避免敵人預判我作戰模式。" },
-    { diff: "hard", q: "部隊指揮程序中預備命令內容為何？", a: "（1）簡要之敵情。（2）任務概要。（3）完成作戰準備之時限，接受命令之時間與地點。（4）特別指示事項。" },
-    { diff: "hard", q: "何謂特定行動？推斷行動？關鍵行動？", a: "（1）特定行動：由上級賦予、指派交由本單位執行之任務。（2）推斷行動：係本部就支持「特定行動」達成與全般狀況考量，由單位自行推斷產生者。（3）關鍵行動：綜合分析特定行動與推斷行動之必然性、重要性、時序性與限制因素後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
-    { diff: "hard", q: "情報計畫用以分發那些事項之文件？", a: "（1）敵軍情報與作戰地區特性之情報。（2）情報需求。（3）情報任務之分配。（4）部隊管制。（5）情報與反情報實施的政策與程序。" },
-    { diff: "hard", q: "偽裝基本目標識別因素有哪些？", a: "（1）位置。（2）形狀。（3）陰影。（4）表面結構。（5）光澤。（6）色彩。（7）色調。（8）運動。（9）溫度。" },
-    { diff: "hard", q: "JCATS系統後勤模擬為何？", a: "（1）彈藥及油料補給。（2）裝備維修及撤收。（3）人員後送及治療。（4）後方指揮所之行動。（5）緊急行動之規劃。" },
-    { diff: "hard", q: "作戰判斷之本文，包括哪五段？", a: "（1）任務。（2）狀況與行動方案。（3）我軍行動方案之分析。（4）我軍行動方案之比較。（5）結論（決心）。" },
-    { diff: "hard", q: "試述初級發掘預防三步驟為何？", a: "（1）一問：陪伴多點時間，主動關懷、積極傾聽。（2）二應：提供對方多點適切回應支持。（3）三轉介：轉介心輔、醫療機構，尋求專業協助。" },
-    { diff: "hard", q: "作戰計畫本文中作戰構想包含哪些範圍？（順序不得調換）", a: "（1）全般概念。（2）兵力。（3）火力。（4）情監偵。（5）工兵。（6）防空。（7）化生放核。（8）政戰。（9）持續作戰（勤務支援）。" },
-    { diff: "hard", q: "計畫與命令之區分？", a: "（1）命令無「假定事項」及「生效時間」兩項外，其格式與計畫相同。（2）命令內容力求簡單明確，計畫可較詳細而具彈性。（3）命令必須適時下達，計畫可依需要提前頒發。（4）計畫作業之依據，係針對「未來事件」之預判，而先期實施作業，待命實施；命令作業則針對當前狀況之研判，而有明確之執行時間。" },
-    { diff: "hard", q: "陸軍司令部「連主檢資訊系統」連級權責為何？", a: "（1）運用系統回報每月連主檢新增裝備故障狀況。（2）運用系統掌握各類裝備保修工令及申補憑單。（3）運用系統調製每月「主要裝備狀況報告表」。（4）反映單位執行窒礙與研改建議。" },
-    { diff: "hard", q: "推行主檢系統後，連隊各項紙本表單，應如何存查？", a: "（1）保15-002表（原始檢查紀錄）一式一份，連隊統一存查。（2）新增損壞項目報告表（主官批示）一式一份，連隊統一存查。（3）主要裝備狀況報告表（主官批示）一式一份，連隊統一存查。（4）保15-002表（系統產製）一式一份，裝備資料袋。（5）裝備申撥補狀態表，視需求列印，由系統線上查詢。" },
-    { diff: "hard", q: "推行主檢系統後，原欠撥憑單突然消失該如何處置？", a: "（1）詢問二級廠該項料件是否已經開撥？（2）詢問二級廠該筆憑單是否已經撤銷？（3）詢問二級廠是否為無效憑單？" },
-    { diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "（1）建立戰場環境之全般概念。（2）確定「作戰地區」、「利害地區」之範圍。（3）確認作業詳盡之程度。（4）準備作業資料。" }
+    // 🟢 易 (36題, id: 1~36)
+    { id: 1, diff: "easy", q: "何謂地形五大要素？", a: "（1）觀測與射界。（2）隱蔽與掩蔽。（3）障礙。（4）地形要點。（5）接近路線。" },
+    { id: 2, diff: "easy", q: "國軍官兵輔導類型區分為何？", a: "（1）一般官兵。（2）新進人員。（3）需關懷人員。（4）輔導個案。" },
+    { id: 3, diff: "easy", q: "國軍三大信念為何？", a: "（1）國家。（2）責任。（3）榮譽。" },
+    { id: 4, diff: "easy", q: "偽裝主要的運用方式？", a: "（1）隱藏。（2）掩蔽。（3）融合。（4）變化。（5）模仿。（6）群體。" },
+    { id: 5, diff: "easy", q: "指揮官重要情報需求中反敵偵蒐部分稱為？", a: "保密事項。" },
+    { id: 6, diff: "easy", q: "JCATS系統模擬種類為何？", a: "（1）機動。（2）指揮與管制。（3）火力支援。（4）工兵。（5）後勤。（6）情報。" },
+    { id: 7, diff: "easy", q: "何謂傳統軍人武德的精神修為？", a: "（1）智者不惑。（2）信者不貳。（3）仁者不憂。（4）勇者不懼。（5）嚴者不私。" },
+    { id: 8, diff: "easy", q: "兵棋推演方式有哪幾種？", a: "（1）帶狀法。（2）區塊法。（3）條狀法。" },
+    { id: 9, diff: "easy", q: "試述一、三、五類補給分類區分？", a: "（1）第一類：糧秣。（2）第三類：油料。（3）第五類：彈藥。" },
+    { id: 10, diff: "easy", q: "安全狀況掌握的步驟為何？", a: "（1）建立官兵正確安全認知。（2）瞭解安全狀況掌握範圍。（3）掌握單位安全危害因素。（4）正視問題有效積極處理。（5）落實狀況處理追蹤機制。" },
+    { id: 11, diff: "easy", q: "部隊指揮程序步驟為何？", a: "（1）受領任務。（2）下達預備命令。（3）擬定初步計畫。（4）處置下列事項。（5）實施偵察。（6）完成計畫。（7）下達命令。（8）督導實施。" },
+    { id: 12, diff: "easy", q: "平時反情報工作執行要領為何？", a: "（1）確立整體觀念。（2）採取必要手段。（3）樹立保密紀律。（4）嚴密保密措施。（5）做好通信保密。（6）檢舉洩密事件。" },
+    { id: 13, diff: "easy", q: "請分別回答下列問題：1.FREQ鍵在定明（密）及跳明（密）模式下會出現哪種參數？2.37跳頻機無線電機波道數及預置波道各為多少？", a: "（1）定明（密）：頻率；跳明（密）：跳頻參數。（2）波道數：2320個；預置波道數8個。" },
+    { id: 14, diff: "easy", q: "陸軍司令部推行「連主檢資訊系統」目的為何？", a: "藉資訊系統驗證各級單位執行成效，並建立自評督管機制，以務實裝備妥善管理。" },
+    { id: 15, diff: "easy", q: "敘述主檢系統新增損壞查詢功能目的？", a: "運用系統列印當月份新增損壞項目表，由主官批閱管制，取代現行逐份批示保表。" },
+    { id: 16, diff: "easy", q: "保密十要項為何？", a: "（1）不洩漏秘密。（2）不探聽秘密。（3）不私藏秘密。（4）不記述秘密。（5）不擅入禁區。（6）要妥管秘密資料。（7）要恪遵保密規定。（8）要防範非法竊取。（9）要檢舉洩密事件。（10）要嚴密保密設備。" },
+    { id: 17, diff: "easy", q: "反情報責任七要項為何？", a: "（1）查誰在洩漏機密。（2）查誰在秘密破壞。（3）查誰的言行反常。（4）查誰在分化團結。（5）查誰在傳播謠言。（6）見可疑追查到底。（7）遇問題立即反映。" },
+    { id: 18, diff: "easy", q: "試述中共網路滲透方式為何？", a: "（1）潛伏網路觀察動態。（2）注蒐官兵公開資訊。（3）杜撰故事伺機接觸。（4）運用交通規避查察。（5）利誘吸收蒐情竊密。" },
+    { id: 19, diff: "easy", q: "憂鬱症的症狀有哪些？", a: "（1）情緒低落。（2）明顯對事物失去興趣。（3）胃口改變。（4）睡眠習慣改變。（5）動作遲緩或因不安活動量增加。（6）疲倦或失去活力。（7）無價值感或過強的罪惡感。（8）無法有效思考、注意力不集中或猶豫不決。（9）自殺的念頭。" },
+    { id: 20, diff: "easy", q: "偽裝之基本要求？", a: "（1）掌握敵人偵蒐能力。（2）避免暴露行蹤遭敵偵察。（3）落實偽裝反制偵測。（4）考慮效果，適度偽裝。（5）隱匿企圖減低移防頻率。（6）依需要設置假設施（目標）。（7）避免敵人預判我作戰模式。" },
+    { id: 21, diff: "easy", q: "作戰判斷之本文，包括哪五段？", a: "（1）任務。（2）狀況與行動方案。（3）我軍行動方案之分析。（4）我軍行動方案之比較。（5）結論（決心）。" },
+    { id: 22, diff: "easy", q: "推行主檢系統後，連隊各項紙本表單，應如何存查？", a: "（1）保15-002表（原始檢查紀錄）一式一份，連隊統一存查。（2）新增損壞項目報告表（主官批示）一式一份，連隊統一存查。（3）主要裝備狀況報告表（主官批示）一式一份，連隊統一存查。（4）保15-002表（系統產製）一式一份，裝備資料袋。（5）裝備申撥補狀態表，視需求列印，由系統線上查詢。" },
+    { id: 23, diff: "easy", q: "兵要調查之種類區分為何？", a: "（1）基本調查。（2）定期調查。（3）不定期調查。（4）特種調查。" },
+    { id: 24, diff: "easy", q: "現行補給前支作業糧秣應運用何種系統完成申補？", a: "後勤資訊系統。" },
+    { id: 25, diff: "easy", q: "計畫之作業格式，其中本文第四段勤務支援內容為何？", a: "（1）人事。（2）後勤。" },
+    { id: 26, diff: "easy", q: "狀況圖四角註記為何？", a: "（1）右上角：任務。（2）右下角：任務編組。（3）左上角：作戰構想。（4）左下角：附記。" },
+    { id: 27, diff: "easy", q: "裝備隨裝資料須保存近幾個月份主檢記錄保15-002表及申撥補狀態表備查？", a: "近三個月份。" },
+    { id: 28, diff: "easy", q: "國軍心理衛生輔導工作三級防處為何？", a: "（1）初級發掘預防。（2）二級介入輔導。（3）三級專業處遇。" },
+    { id: 29, diff: "easy", q: "何謂高價值目標？", a: "係指敵軍指揮官為達成任務所需要的主要作戰部隊。" },
+    { id: 30, diff: "easy", q: "目標偵察方式？", a: "（1）地面偵察。（2）空中偵察。（3）衛星偵察。" },
+    { id: 31, diff: "easy", q: "偽裝材料之種類？", a: "（1）天然。（2）人工。" },
+    { id: 32, diff: "easy", q: "任務以五何方式論述，包含哪些？", a: "何人、何時、何地、何事、為何。" },
+    { id: 33, diff: "easy", q: "領導的要訣為何？以何為根本？", a: "誠、勤、明、公為領導之要訣，而以誠為其根本。" },
+    { id: 34, diff: "easy", q: "判斷的分類為何？", a: "（1）指揮官（狀況）判斷。（2）參謀（狀況）判斷。" },
+    { id: 35, diff: "easy", q: "比較行動方案的方法有那幾種？", a: "（1）數值比較法。（2）利弊比較法。（3）廣泛因素比較法。" },
+    { id: 36, diff: "easy", q: "二級廠運用「連主檢模組」作業流程為何？", a: "（1）缺失審查。（2）估工估料。（3）轉廠申請。" },
+
+    // 🟡 中 (36題, id: 37~72)
+    { id: 37, diff: "mid", q: "判斷的實施方式為何？", a: "（1）內心判斷。（2）書面判斷。" },
+    { id: 38, diff: "mid", q: "行「書面判斷」時機為何？", a: "時間充裕狀況複雜，則宜採用完整之書面方式表達之。" },
+    { id: 39, diff: "mid", q: "行「內心判斷」時機為何？", a: "時間倉促或狀況簡單，可依思維程序行內心推斷。" },
+    { id: 40, diff: "mid", q: "戰場情報準備將登陸海灘區分哪三種？", a: "（1）紅色海灘。（2）黃色海灘。（3）藍色海灘。" },
+    { id: 41, diff: "mid", q: "陸軍司令部「連主檢資訊系統」服務對象為何？", a: "（1）連級單位。（2）各督管層級。" },
+    { id: 42, diff: "mid", q: "後勤區位於作戰區後方地區，包括哪些專業部隊與設施編成，負責作戰區內各部隊後勤支援任務。", a: "（1）補給。（2）油料。（3）保修。（4）運輸。（5）衛勤。（6）彈藥。" },
+    { id: 43, diff: "mid", q: "支援型態有哪一些？", a: "（1）增援。（2）過境。（3）受增援。" },
+    { id: 44, diff: "mid", q: "評估敵軍威脅定義？", a: "分析敵軍編裝能力、準則運用、慣用之戰術戰法及特、弱點。" },
+    { id: 45, diff: "mid", q: "請說明「國軍用兵後勤管理系統—前支作業功能」內管制表如何區分需求處理情形？", a: "（1）綠色燈號：正常無前支需求。（2）黃色燈號：需求處理中，尚未結案。（3）紅色燈號：前支需求尚未處理。" },
+    { id: 46, diff: "mid", q: "哪種比例尺軍用地圖可知橋梁資訊？", a: "兩萬五千分之一軍用地圖。" },
+    { id: 47, diff: "mid", q: "物質要發生燃燒，所需要具備之條件為何？", a: "（1）可燃物。（2）助燃物。（3）熱能（溫度）。（4）連鎖反應。" },
+    { id: 48, diff: "mid", q: "共軍合成營包含哪些單位？", a: "（1）營部。（2）4個坦克連（裝甲步兵連、步兵連）。（3）火力連。（4）支援保障連。" },
+    { id: 49, diff: "mid", q: "情報傳遞內容為何？", a: "（1）何人。（2）何時。（3）何地。（4）何事。（5）為何。" },
+    { id: 50, diff: "mid", q: "教學之實施程序為何？", a: "（1）講解。（2）示範。（3）討論。（4）實作。（5）測驗。（6）結論。（7）檢討與講評。" },
+    { id: 51, diff: "mid", q: "連隊主官如何運用連主檢系統實施督管作為？", a: "（1）可運用系統查詢「故障回報及待料統計」，掌握並管制當月主檢執行進度。（2）另可查詢「申（撥）補狀況表」，即時掌握料件申補與修復進度。" },
+    { id: 52, diff: "mid", q: "何謂作戰地區？", a: "為上級所賦予之作戰範圍，亦為指揮官能運用其現有戰力，以自行直接左右戰局進行之範圍。" },
+    { id: 53, diff: "mid", q: "對救災部隊及地方災區補給物資採何種方式執行？", a: "（1）主動運補。（2）前推預置。" },
+    { id: 54, diff: "mid", q: "督管單位多久須辦理連主檢系統操作講習及簽證作業乙次？", a: "（1）軍團級每半年。（2）聯兵旅級每季。" },
+    { id: 55, diff: "mid", q: "人事十大職掌為何？", a: "（1）兵力。（2）兵員補充。（3）法紀維護。（4）特種人員處理。（5）軍墓勤務。（6）人事程序。（7）人事勤務。（8）聘雇人員。（9）內部管理。（10）其他。" },
+    { id: 56, diff: "mid", q: "戰時反情報工作執行要領為何？", a: "（1）反制敵人組織滲透與破壞。（2）防止潛敵謠言耳語及黑函。（3）內防突變重於外防突擊。（4）戰備整備檢查。（5）協調聯繫憲兵、警察。（6）嚴格銷毀失效保密資料。" },
+    { id: 57, diff: "mid", q: "安全狀況掌握的要領為何？", a: "（1）掌握時效。（2）內容詳實。（3）注意保密。（4）完善編組。" },
+    { id: 58, diff: "mid", q: "軍人武德可培養何種信念及精神？", a: "培養「知廉恥、辨生死、負責任、重氣節」的情操，以及服從負責、犧牲奉獻的精神。" },
+    { id: 59, diff: "mid", q: "「利害地區」幅員大小？", a: "係以「作戰地區」為核心，配合兩個基本概念，即是「早期預警」與「安全應變」。" },
+    { id: 60, diff: "mid", q: "共軍4大軍種及武警部隊21式作訓服左手臂軍種臂章顏色為何？", a: "（1）陸軍：綠色。（2）海軍：藍白相間。（3）空軍：淺藍色。（4）火箭軍：橘色。（5）武警部隊：紅黑相間。" },
+    { id: 61, diff: "mid", q: "軍事決心策定程序之階段與內容區分？", a: "（1）受領任務。（2）任務分析。（3）研擬行動方案。（4）分析行動方案。（5）比較行動方案。（6）核准行動方案。（7）頒布計畫。" },
+    { id: 62, diff: "mid", q: "聯合作戰定義及目的？", a: "凡兩個（含）以上之軍種部隊，執行共同任務，達成同一作戰目的，所遂行之作戰，不論其階層與指揮關係如何，均謂之聯合作戰；聯合作戰在統合運用各軍種、各空間戰力，以達成共同任務為目的。" },
+    { id: 63, diff: "mid", q: "JCATS主要訓練課目包含哪些？", a: "（1）地面運動。（2）空中機動。（3）空降作戰。（4）城鎮作戰。（5）兩棲作戰。（6）反恐、人質營救。" },
+    { id: 64, diff: "mid", q: "國軍信念為何？", a: "（1）為何而戰：為中華民國國家生存發展而戰。（2）為誰而戰：為臺澎金馬百姓安全福祉而戰。" },
+    { id: 65, diff: "mid", q: "作戰判斷之首部，包括哪六項？", a: "（1）單位、判斷類別、編號。（2）受文者。（3）地點。（4）時間。（5）字號。（6）參考資料。" },
+    { id: 66, diff: "mid", q: "計畫之意義？", a: "計畫乃實現指揮官決心或企圖，所策訂之具體行動方案，為下達命令及指揮作戰準備與實施之準據。" },
+    { id: 67, diff: "mid", q: "戰備階段之劃分區分哪三個階段？", a: "（1）戰備整備階段。（2）應急作戰階段。（3）全面作戰階段。" },
+    { id: 68, diff: "mid", q: "何謂後勤判斷？", a: "後勤判斷係依據情報與作戰判斷，分析與研判所有可能影響任務達成之後勤因素，用以判定現有後勤能量能否支援作戰；何案最能獲得後勤有效之支援，並提出克服後勤支援困難之建議。" },
+    { id: 69, diff: "mid", q: "術科教學法區分哪幾種？", a: "（1）示範摹擬法。（2）觀摩比較法。（3）學生導師法。（4）統一練習法。（5）相互競賽法。（6）對抗演練法。（7）狀況誘導法。（8）檢查糾正法。（9）個別教學法。" },
+    { id: 70, diff: "mid", q: "敘述主檢系統裝備故障報告功能目的？", a: "提供連隊線上回報裝備故障狀況及停用判定；運用系統向二級廠回報裝備檢查缺失，取代原「保15-002表」紙本送交二級廠審查作業。" },
+    { id: 71, diff: "mid", q: "何謂關鍵行動？", a: "綜合分析作戰之「特定行動」及「推斷行動」之必然性、重要性、時序性與限制因素後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
+    { id: 72, diff: "mid", q: "研擬行動方案步驟，除分析敵、我相對戰力及研擬各種行動方案選項外，還有那些？", a: "（1）初步規劃行動方案所需兵力及部署。（2）研擬行動方案作戰構想。（3）律定行動方案任務編組。（4）完成行動方案文字敘述及圖解標繪。" },
+
+    // 🔴 難 (18題, id: 73~90)
+    { id: 73, diff: "hard", q: "戰場情報準備作業步驟為何？", a: "（1）界定戰場空間。（2）分析作戰地區。（3）評估敵軍威脅。（4）研判敵可能行動。" },
+    { id: 74, diff: "hard", q: "何謂接近路線？", a: "供某一適當大小與類型之部隊，用以通達地形要點或目標之一適切而便利之運動路線。" },
+    { id: 75, diff: "hard", q: "共軍合成旅包含哪些單位？", a: "旅部、4個合成營、偵察營、砲兵營、防空營、作戰支援營、勤務保障營共9個營級單位。" },
+    { id: 76, diff: "hard", q: "在兵棋推演準備工作中，除準備各項推演工具、列述我軍部隊及列舉假定事項外，還有那些步驟？", a: "（1）列舉已知重大事件及決心點。（2）決定評估要項。（3）選擇兵棋推演模式。（4）選擇記錄及公佈結果方式。" },
+    { id: 77, diff: "hard", q: "試問軍品整備範圍為何？", a: "各部隊列管之主（重）要武器裝備，包含戰甲砲車、火砲、輕、重兵器、輪型車輛（軍、民用、特種）、光學裝備、工兵裝備、通信裝備、化學裝備、軍醫裝備等。" },
+    { id: 78, diff: "hard", q: "偽裝之定義？", a: "軍事偽裝，即為隱蔽自己，欺騙、引誘及迷惑敵人所採取之各種隱真示假的技術與戰術作為。" },
+    { id: 79, diff: "hard", q: "作戰地區戰地人文分析應包含哪些？", a: "政治、社會、經濟、心理等因素，對作戰行動、勤務支援及政治作戰，影響甚鉅；從事判斷、下達決心與處置時，均須考慮之。" },
+    { id: 80, diff: "hard", q: "部隊指揮程序中預備命令內容為何？", a: "（1）簡要之敵情。（2）任務概要。（3）完成作戰準備之時限，接受命令之時間與地點。（4）特別指示事項。" },
+    { id: 81, diff: "hard", q: "何謂特定行動？推斷行動？關鍵行動？", a: "（1）特定行動：由上級賦予、指派交由本單位執行之任務。（2）推斷行動：係本部就支持「特定行動」達成與全般狀況考量，由單位自行推斷產生者。（3）關鍵行動：綜合分析特定行動與推斷行動之必然性、重要性、時序性與限制因素後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
+    { id: 82, diff: "hard", q: "情報計畫用以分發那些事項之文件？", a: "（1）敵軍情報與作戰地區特性之情報。（2）情報需求。（3）情報任務之分配。（4）部隊管制。（5）情報與反情報實施的政策與程序。" },
+    { id: 83, diff: "hard", q: "偽裝基本目標識別因素有哪些？", a: "（1）位置。（2）形狀。（3）陰影。（4）表面結構。（5）光澤。（6）色彩。（7）色調。（8）運動。（9）溫度。" },
+    { id: 84, diff: "hard", q: "JCATS系統後勤模擬為何？", a: "（1）彈藥及油料補給。（2）裝備維修及撤收。（3）人員後送及治療。（4）後方指揮所之行動。（5）緊急行動之規劃。" },
+    { id: 85, diff: "hard", q: "試述初級發掘預防三步驟為何？", a: "（1）一問：陪伴多點時間，主動關懷、積極傾聽。（2）二應：提供對方多點適切回應支持。（3）三轉介：轉介心輔、醫療機構，尋求專業協助。" },
+    { id: 86, diff: "hard", q: "作戰計畫本文中作戰構想包含哪些範圍？（順序不得調換）", a: "（1）全般概念。（2）兵力。（3）火力。（4）情監偵。（5）工兵。（6）防空。（7）化生放核。（8）政戰。（9）持續作戰（勤務支援）。" },
+    { id: 87, diff: "hard", q: "計畫與命令之區分？", a: "（1）命令無「假定事項」及「生效時間」兩項外，其格式與計畫相同。（2）命令內容力求簡單明確，計畫可較詳細而具彈性。（3）命令必須適時下達，計畫可依需要提前頒發。（4）計畫作業之依據，係針對「未來事件」之預判，而先期實施作業，待命實施；命令作業則針對當前狀況之研判，而有明確之執行時間。" },
+    { id: 88, diff: "hard", q: "陸軍司令部「連主檢資訊系統」連級權責為何？", a: "（1）運用系統回報每月連主檢新增裝備故障狀況。（2）運用系統掌握各類裝備保修工令及申補憑單。（3）運用系統調製每月「主要裝備狀況報告表」。（4）反映單位執行窒礙與研改建議。" },
+    { id: 89, diff: "hard", q: "推行主檢系統後，原欠撥憑單突然消失該如何處置？", a: "（1）詢問二級廠該項料件是否已經開撥？（2）詢問二級廠該筆憑單是否已經撤銷？（3）詢問二級廠是否為無效憑單？" },
+    { id: 90, diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "（1）建立戰場環境之全般概念。（2）確定「作戰地區」、「利害地區」之範圍。（3）確認作業詳盡之程度。（4）準備作業資料。" }
 ];
+
+// 本地存儲：背熟的題目 ID 集合
+let masteredSet = new Set(JSON.parse(localStorage.getItem('mastered_questions') || '[]'));
 
 let quizList = [];
 let currentIndex = 0;
 let score = 0;
+let wrongQuestions = []; // 紀錄本次作答錯誤的題目
 
-function normalizeStr(s) {
-    return s ? s.replace(/[\(（]/g, '（')
-                .replace(/[\)）]/g, '）')
-                .replace(/[\.．。]/g, '。')
-                .replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 65248))
-                .replace(/\s+/g, '')
+function saveMastered() {
+    localStorage.setItem('mastered_questions', JSON.stringify([...masteredSet]));
+    renderMasteredStat();
+}
+
+function renderMasteredStat() {
+    const el = document.getElementById('mastered-stat-text');
+    if (el) el.textContent = `已標記熟記：${masteredSet.size} 題 / 共 ${RAW_QUESTIONS.length} 題`;
+}
+
+function resetMastered() {
+    if (confirm("確定要重設所有已熟記的題目標記嗎？")) {
+        masteredSet.clear();
+        saveMastered();
+    }
+}
+
+function toggleMastered(isChecked) {
+    if (!quizList[currentIndex]) return;
+    const qId = quizList[currentIndex].id;
+    if (isChecked) {
+        masteredSet.add(qId);
+    } else {
+        masteredSet.delete(qId);
+    }
+    saveMastered();
+}
+
+function cleanText(s) {
+    return s ? s.replace(/[\s\(\)（）\.,，。、:：;；—\-_【】「」『』]/g, '')
+                .replace(/[0-9０-９]/g, '')
+                .toLowerCase()
                 .trim() : '';
 }
 
+function extractItems(s) {
+    if (!s) return [];
+    return s.split(/(?:[（\(]?\s*\d+\s*[）\.\、\)]|\n+)/)
+            .map(item => cleanText(item))
+            .filter(item => item.length > 0);
+}
+
+function checkSmartMatch(userRaw, standardRaw) {
+    const cleanU = cleanText(userRaw);
+    const cleanS = cleanText(standardRaw);
+    if (!cleanU) return false;
+    if (cleanU === cleanS) return true;
+
+    const standardItems = extractItems(standardRaw);
+    if (standardItems.length > 1) {
+        let remainingUserText = cleanU;
+        let allMatched = true;
+
+        for (const item of standardItems) {
+            const idx = remainingUserText.indexOf(item);
+            if (idx === -1) {
+                allMatched = false;
+                break;
+            }
+            remainingUserText = remainingUserText.slice(0, idx) + remainingUserText.slice(idx + item.length);
+        }
+
+        if (allMatched && remainingUserText.length <= 2) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function handleModeChange() {
+    const mode = document.getElementById('select-mode').value;
+    document.getElementById('panel-ratio').classList.add('hidden');
+    document.getElementById('panel-count').classList.add('hidden');
+    document.getElementById('panel-custom').classList.add('hidden');
+
+    if (mode === 'ratio') {
+        document.getElementById('panel-ratio').classList.remove('hidden');
+        updateTotalCount();
+    } else if (mode === 'all') {
+        document.getElementById('panel-count').classList.remove('hidden');
+    } else if (mode === 'custom') {
+        document.getElementById('panel-custom').classList.remove('hidden');
+    }
+}
+
 function updateTotalCount() {
-    const e = parseInt(document.getElementById('input-easy').value, 10) || 0;
-    const m = parseInt(document.getElementById('input-mid').value, 10) || 0;
-    const h = parseInt(document.getElementById('input-hard').value, 10) || 0;
-    document.getElementById('ratio-total-hint').textContent = `本次預計測驗：${e + m + h} 題`;
+    const easy = parseInt(document.getElementById('input-easy').value, 10) || 0;
+    const mid = parseInt(document.getElementById('input-mid').value, 10) || 0;
+    const hard = parseInt(document.getElementById('input-hard').value, 10) || 0;
+    document.getElementById('ratio-total-hint').textContent = `本次預計測驗：${easy + mid + hard} 題`;
 }
 
 function escapeHtml(str) {
@@ -260,32 +448,51 @@ function escapeHtml(str) {
 }
 
 function getRandomSubarray(arr, size) {
-    return [...arr].sort(() => 0.5 - Math.random()).slice(0, size);
+    const shuffled = [...arr].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, size);
 }
 
 function startQuiz() {
-    const eC = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), 36);
-    const mC = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), 36);
-    const hC = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), 18);
+    const mode = document.getElementById('select-mode').value;
+    let selected = [];
 
-    const easyPool = RAW_QUESTIONS.filter(x => x.diff === 'easy');
-    const midPool = RAW_QUESTIONS.filter(x => x.diff === 'mid');
-    const hardPool = RAW_QUESTIONS.filter(x => x.diff === 'hard');
+    if (mode === 'ratio') {
+        const easyCount = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), 36);
+        const midCount = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), 36);
+        const hardCount = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), 18);
 
-    const selected = [
-        ...getRandomSubarray(easyPool, eC),
-        ...getRandomSubarray(midPool, mC),
-        ...getRandomSubarray(hardPool, hC)
-    ];
+        const easyPool = RAW_QUESTIONS.filter(x => x.diff === 'easy');
+        const midPool = RAW_QUESTIONS.filter(x => x.diff === 'mid');
+        const hardPool = RAW_QUESTIONS.filter(x => x.diff === 'hard');
+
+        selected = [
+            ...getRandomSubarray(easyPool, easyCount),
+            ...getRandomSubarray(midPool, midCount),
+            ...getRandomSubarray(hardPool, hardCount)
+        ];
+    } else if (mode === 'all') {
+        const count = Math.min(Math.max(1, parseInt(document.getElementById('input-count').value, 10) || 30), 90);
+        selected = getRandomSubarray(RAW_QUESTIONS, count);
+    } else if (mode === 'custom') {
+        let start = (parseInt(document.getElementById('custom-start').value, 10) || 1) - 1;
+        let end = (parseInt(document.getElementById('custom-end').value, 10) || 90);
+        if (start > end) [start, end] = [end, start];
+        selected = RAW_QUESTIONS.slice(Math.max(0, start), Math.min(90, end));
+    }
 
     if (selected.length === 0) {
-        alert("請至少選擇 1 題！");
+        alert("所選設定未包含任何題目！");
         return;
     }
 
-    quizList = selected.sort(() => 0.5 - Math.random());
+    initQuizSession(selected);
+}
+
+function initQuizSession(questions) {
+    quizList = questions.sort(() => 0.5 - Math.random());
     currentIndex = 0;
     score = 0;
+    wrongQuestions = [];
 
     document.getElementById('view-setup').classList.add('hidden');
     document.getElementById('view-result').classList.add('hidden');
@@ -299,6 +506,10 @@ function showQuestion() {
     document.getElementById('quiz-progress').textContent = `第 ${currentIndex + 1} 題 / 共 ${quizList.length} 題`;
     document.getElementById('quiz-question').textContent = item.q;
     
+    // 初始化背熟勾選框狀態
+    const chk = document.getElementById('chk-mastered');
+    chk.checked = masteredSet.has(item.id);
+
     const ansArea = document.getElementById('quiz-answer');
     ansArea.value = '';
     ansArea.disabled = false;
@@ -347,9 +558,11 @@ function computeDiff(expected, actual) {
 
 function submitAnswer() {
     const rawU = document.getElementById('quiz-answer').value;
-    const rawS = quizList[currentIndex].a;
+    const item = quizList[currentIndex];
+    const rawS = item.a;
     const feedback = document.getElementById('quiz-feedback');
-    const isCorrect = (normalizeStr(rawU) === normalizeStr(rawS));
+    
+    const isCorrect = checkSmartMatch(rawU, rawS);
 
     document.getElementById('quiz-answer').disabled = true;
     document.getElementById('btn-submit').classList.add('hidden');
@@ -359,16 +572,21 @@ function submitAnswer() {
     if (isCorrect) {
         score++;
         feedback.className = 'feedback correct';
-        feedback.innerHTML = '<div class="feedback-title">✅ 完全正確！一字不漏</div>';
-    } else {
-        feedback.className = 'feedback wrong';
-        const diff = computeDiff(normalizeStr(rawS), normalizeStr(rawU));
         feedback.innerHTML = `
-            <div class="feedback-title">❌ 答案有誤</div>
+            <div class="feedback-title">✅ 完全正確！要點齊全</div>
             <div style="font-weight: 600; margin-top: 0.5rem;">【標準答案】：</div>
             <div class="diff-view">${rawS}</div>
-            <div style="font-weight: 600; margin-top: 0.5rem;">【錯誤比對解析】：</div>
-            <div class="diff-view">標準：${diff.standardHtml}<br>作答：${diff.userHtml}</div>
+        `;
+    } else {
+        wrongQuestions.push(item);
+        feedback.className = 'feedback wrong';
+        const diff = computeDiff(cleanText(rawS), cleanText(rawU));
+        feedback.innerHTML = `
+            <div class="feedback-title">❌ 答案有誤（或要點缺漏）</div>
+            <div style="font-weight: 600; margin-top: 0.5rem;">【標準答案】：</div>
+            <div class="diff-view">${rawS}</div>
+            <div style="font-weight: 600; margin-top: 0.5rem;">【缺漏/錯誤比對】：</div>
+            <div class="diff-view">標準要點：${diff.standardHtml}<br>您的作答：${diff.userHtml}</div>
         `;
     }
 }
@@ -390,12 +608,36 @@ function showResult() {
     const rate = Math.round((score / total) * 100);
     document.getElementById('res-rate').textContent = `${rate}%`;
     document.getElementById('res-detail').textContent = `總題數 ${total} 題 ｜ 答對 ${score} 題 ｜ 答錯 ${total - score} 題`;
+
+    // 篩選出「本次答錯」且「尚未標記背熟」的題目
+    const unmasteredWrong = wrongQuestions.filter(q => !masteredSet.has(q.id));
+    const retryBtn = document.getElementById('btn-retry-unmastered');
+
+    if (unmasteredWrong.length > 0) {
+        retryBtn.textContent = `複習本次錯題（共 ${unmasteredWrong.length} 題未熟記）`;
+        retryBtn.classList.remove('hidden');
+    } else {
+        retryBtn.classList.add('hidden');
+    }
+}
+
+function startWrongReview() {
+    const unmasteredWrong = wrongQuestions.filter(q => !masteredSet.has(q.id));
+    if (unmasteredWrong.length === 0) {
+        alert("目前沒有未熟記的錯題！");
+        return;
+    }
+    initQuizSession(unmasteredWrong);
 }
 
 function restartQuiz() {
+    renderMasteredStat();
     document.getElementById('view-result').classList.add('hidden');
     document.getElementById('view-setup').classList.remove('hidden');
 }
+
+// 初始化統計標記
+renderMasteredStat();
 </script>
 </body>
 </html>
