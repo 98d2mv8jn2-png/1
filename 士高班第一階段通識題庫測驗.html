@@ -232,26 +232,26 @@
         <div class="setup-group">
             <label for="select-mode">測驗模式：</label>
             <select id="select-mode" onchange="handleModeChange()">
-                <option value="ratio" selected>依難易度配題（自選易/中/難題數）</option>
-                <option value="all">全題庫隨機抽取（自訂題數）</option>
-                <option value="custom">自訂指定範圍（選定題號起訖）</option>
+                <option value="ratio" selected>依難易度配題（自動排除已熟記）</option>
+                <option value="all">全題庫隨機抽取（自動排除已熟記）</option>
+                <option value="custom">自訂指定範圍（自動排除已熟記）</option>
             </select>
         </div>
 
         <!-- 難易度自訂配題面板 -->
         <div id="panel-ratio" class="setup-group">
-            <label>設定各難度題數（預設 15 / 10 / 5）：</label>
+            <label>設定各難度題數（自動扣除已熟記）：</label>
             <div class="grid-inputs">
                 <div class="grid-item">
-                    <label for="input-easy">易（上限 36）</label>
+                    <label for="input-easy" id="label-easy">易（上限 36）</label>
                     <input type="number" id="input-easy" min="0" max="36" value="15" oninput="updateTotalCount()">
                 </div>
                 <div class="grid-item">
-                    <label for="input-mid">中（上限 36）</label>
+                    <label for="input-mid" id="label-mid">中（上限 36）</label>
                     <input type="number" id="input-mid" min="0" max="36" value="10" oninput="updateTotalCount()">
                 </div>
                 <div class="grid-item">
-                    <label for="input-hard">難（上限 18）</label>
+                    <label for="input-hard" id="label-hard">難（上限 18）</label>
                     <input type="number" id="input-hard" min="0" max="18" value="5" oninput="updateTotalCount()">
                 </div>
             </div>
@@ -260,13 +260,13 @@
 
         <!-- 全題庫隨機抽取面板 -->
         <div id="panel-count" class="setup-group hidden">
-            <label for="input-count">本次測驗總題數（題庫共 90 題）：</label>
+            <label for="input-count" id="label-count">本次測驗題數（未熟記題庫共 90 題）：</label>
             <input type="number" id="input-count" min="1" max="90" value="30">
         </div>
 
         <!-- 自訂題號區間面板 -->
         <div id="panel-custom" class="setup-group hidden">
-            <label>指定題庫索引區間（題號 1 ~ 90）：</label>
+            <label>指定題庫索引區間（題號 1 ~ 90，將自動排除區間內已熟記題）：</label>
             <div class="range-inputs">
                 <input type="number" id="custom-start" min="1" max="90" value="1" placeholder="起始題號">
                 <span>至</span>
@@ -428,11 +428,54 @@ let wrongQuestions = []; // 紀錄本次作答錯誤的題目
 function saveMastered() {
     localStorage.setItem('mastered_questions', JSON.stringify([...masteredSet]));
     renderMasteredStat();
+    updateAvailableLimits();
 }
 
 function renderMasteredStat() {
     const el = document.getElementById('mastered-stat-text');
     if (el) el.textContent = `已標記熟記：${masteredSet.size} 題 / 共 ${RAW_QUESTIONS.length} 題`;
+}
+
+function updateAvailableLimits() {
+    // 取得未熟記的可用題庫
+    const unmasteredEasy = RAW_QUESTIONS.filter(x => x.diff === 'easy' && !masteredSet.has(x.id)).length;
+    const unmasteredMid = RAW_QUESTIONS.filter(x => x.diff === 'mid' && !masteredSet.has(x.id)).length;
+    const unmasteredHard = RAW_QUESTIONS.filter(x => x.diff === 'hard' && !masteredSet.has(x.id)).length;
+    const totalUnmastered = RAW_QUESTIONS.length - masteredSet.size;
+
+    // 更新「依難度配題」的上限與標籤
+    const inputEasy = document.getElementById('input-easy');
+    const inputMid = document.getElementById('input-mid');
+    const inputHard = document.getElementById('input-hard');
+
+    if (inputEasy) {
+        inputEasy.max = unmasteredEasy;
+        if (parseInt(inputEasy.value, 10) > unmasteredEasy) inputEasy.value = unmasteredEasy;
+        document.getElementById('label-easy').textContent = `易（可用 ${unmasteredEasy} 題）`;
+    }
+    if (inputMid) {
+        inputMid.max = unmasteredMid;
+        if (parseInt(inputMid.value, 10) > unmasteredMid) inputMid.value = unmasteredMid;
+        document.getElementById('label-mid').textContent = `中（可用 ${unmasteredMid} 題）`;
+    }
+    if (inputHard) {
+        inputHard.max = unmasteredHard;
+        if (parseInt(inputHard.value, 10) > unmasteredHard) inputHard.value = unmasteredHard;
+        document.getElementById('label-hard').textContent = `難（可用 ${unmasteredHard} 題）`;
+    }
+
+    // 更新「全題庫抽取」的上限與標籤
+    const inputCount = document.getElementById('input-count');
+    const labelCount = document.getElementById('label-count');
+    if (inputCount && labelCount) {
+        inputCount.max = totalUnmastered;
+        labelCount.textContent = `本次測驗題數（未熟記題庫共 ${totalUnmastered} 題）：`;
+        if (parseInt(inputCount.value, 10) > totalUnmastered) {
+            inputCount.value = totalUnmastered;
+        }
+    }
+
+    updateTotalCount();
 }
 
 function resetMastered() {
@@ -473,7 +516,7 @@ function showMasteredList() {
 function hideMasteredList() {
     document.getElementById('view-mastered').classList.add('hidden');
     document.getElementById('view-setup').classList.remove('hidden');
-    handleModeChange(); // 確保回到主頁時面板狀態正確
+    handleModeChange();
     renderMasteredStat();
 }
 
@@ -588,14 +631,22 @@ function startQuiz() {
     const mode = document.getElementById('select-mode').value;
     let selected = [];
 
-    if (mode === 'ratio') {
-        const easyCount = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), 36);
-        const midCount = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), 36);
-        const hardCount = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), 18);
+    // 先過濾出「尚未熟記」的所有題目池
+    const unmasteredPool = RAW_QUESTIONS.filter(x => !masteredSet.has(x.id));
 
-        const easyPool = RAW_QUESTIONS.filter(x => x.diff === 'easy');
-        const midPool = RAW_QUESTIONS.filter(x => x.diff === 'mid');
-        const hardPool = RAW_QUESTIONS.filter(x => x.diff === 'hard');
+    if (unmasteredPool.length === 0) {
+        alert("🎉 恭喜！您已經將所有題目都標記為已熟記！\n如需重新練習，請至上方清空或調整熟記名單。");
+        return;
+    }
+
+    if (mode === 'ratio') {
+        const easyPool = unmasteredPool.filter(x => x.diff === 'easy');
+        const midPool = unmasteredPool.filter(x => x.diff === 'mid');
+        const hardPool = unmasteredPool.filter(x => x.diff === 'hard');
+
+        const easyCount = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), easyPool.length);
+        const midCount = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), midPool.length);
+        const hardCount = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), hardPool.length);
 
         selected = [
             ...getRandomSubarray(easyPool, easyCount),
@@ -603,17 +654,19 @@ function startQuiz() {
             ...getRandomSubarray(hardPool, hardCount)
         ];
     } else if (mode === 'all') {
-        const count = Math.min(Math.max(1, parseInt(document.getElementById('input-count').value, 10) || 30), 90);
-        selected = getRandomSubarray(RAW_QUESTIONS, count);
+        const count = Math.min(Math.max(1, parseInt(document.getElementById('input-count').value, 10) || 1), unmasteredPool.length);
+        selected = getRandomSubarray(unmasteredPool, count);
     } else if (mode === 'custom') {
-        let start = (parseInt(document.getElementById('custom-start').value, 10) || 1) - 1;
+        let start = (parseInt(document.getElementById('custom-start').value, 10) || 1);
         let end = (parseInt(document.getElementById('custom-end').value, 10) || 90);
         if (start > end) [start, end] = [end, start];
-        selected = RAW_QUESTIONS.slice(Math.max(0, start), Math.min(90, end));
+        
+        // 取得區間內且未熟記的題目
+        selected = RAW_QUESTIONS.filter(q => q.id >= start && q.id <= end && !masteredSet.has(q.id));
     }
 
     if (selected.length === 0) {
-        alert("所選設定未包含任何題目！");
+        alert("所選條件範圍內沒有尚未熟記的題目！");
         return;
     }
 
@@ -765,6 +818,7 @@ function startWrongReview() {
 
 function restartQuiz() {
     renderMasteredStat();
+    updateAvailableLimits();
     document.getElementById('view-result').classList.add('hidden');
     document.getElementById('view-setup').classList.remove('hidden');
     handleModeChange();
@@ -772,6 +826,7 @@ function restartQuiz() {
 
 // 初始化統計標記與模式面板
 renderMasteredStat();
+updateAvailableLimits();
 handleModeChange();
 </script>
 </body>
