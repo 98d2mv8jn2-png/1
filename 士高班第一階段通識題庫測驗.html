@@ -240,12 +240,12 @@
             <label for="select-mode">測驗模式：</label>
             <select id="select-mode" onchange="handleModeChange()">
                 <option value="ratio" selected>依難易度配題（含熟記題，出現可跳過）</option>
-                <option value="all">全題庫隨機抽取（可自選題數）</option>
-                <option value="custom">自訂指定範圍（選定題號起訖）</option>
+                <option value="all">全題庫隨機抽取（直接跳過已熟記題）</option>
+                <option value="custom">自訂指定範圍（直接跳過已熟記題）</option>
             </select>
         </div>
 
-        <!-- 難易度自訂配題面板 -->
+        <!-- 難易度自訂配題面板（含熟記題） -->
         <div id="panel-ratio" class="setup-group">
             <label>設定各難度題數（預設 15 / 10 / 5）：</label>
             <div class="grid-inputs">
@@ -265,15 +265,15 @@
             <div class="total-hint" id="ratio-total-hint">本次預計測驗：30 題</div>
         </div>
 
-        <!-- 全題庫隨機抽取面板 -->
+        <!-- 全題庫隨機抽取面板（直接排除已熟記） -->
         <div id="panel-count" class="setup-group hidden">
-            <label for="input-count">本次測驗總題數（題庫共 90 題）：</label>
+            <label for="input-count" id="label-count">本次測驗題數（排除已熟記後共 90 題）：</label>
             <input type="number" id="input-count" min="1" max="90" value="30">
         </div>
 
-        <!-- 自訂題號區間面板 -->
+        <!-- 自訂題號區間面板（直接排除已熟記） -->
         <div id="panel-custom" class="setup-group hidden">
-            <label>指定題庫索引區間（題號 1 ~ 90）：</label>
+            <label>指定題庫索引區間（將直接跳過區間內的已熟記題）：</label>
             <div class="range-inputs">
                 <input type="number" id="custom-start" min="1" max="90" value="1" placeholder="起始題號">
                 <span>至</span>
@@ -445,6 +445,18 @@ function saveMastered() {
 function renderMasteredStat() {
     const el = document.getElementById('mastered-stat-text');
     if (el) el.textContent = `已標記熟記：${masteredSet.size} 題 / 共 ${RAW_QUESTIONS.length} 題`;
+    
+    // 更新隨機抽取面板中的可用題數與上限提示
+    const unmasteredTotal = RAW_QUESTIONS.length - masteredSet.size;
+    const labelCount = document.getElementById('label-count');
+    const inputCount = document.getElementById('input-count');
+    if (labelCount && inputCount) {
+        labelCount.textContent = `本次測驗題數（排除已熟記後共 ${unmasteredTotal} 題）：`;
+        inputCount.max = unmasteredTotal;
+        if (parseInt(inputCount.value, 10) > unmasteredTotal) {
+            inputCount.value = Math.max(1, unmasteredTotal);
+        }
+    }
 }
 
 function resetMastered() {
@@ -582,6 +594,7 @@ function handleModeChange() {
         updateTotalCount();
     } else if (mode === 'all') {
         pCount.classList.remove('hidden');
+        renderMasteredStat();
     } else if (mode === 'custom') {
         pCustom.classList.remove('hidden');
     }
@@ -608,6 +621,7 @@ function startQuiz() {
     let selected = [];
 
     if (mode === 'ratio') {
+        // 模式一：依難易度配題（不排除熟記題，答題時可手動跳過）
         const easyCount = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), 36);
         const midCount = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), 36);
         const hardCount = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), 18);
@@ -622,13 +636,25 @@ function startQuiz() {
             ...getRandomSubarray(hardPool, hardCount)
         ];
     } else if (mode === 'all') {
-        const count = Math.min(Math.max(1, parseInt(document.getElementById('input-count').value, 10) || 30), 90);
-        selected = getRandomSubarray(RAW_QUESTIONS, count);
+        // 模式二：全題庫隨機抽取（直接過濾掉已熟記題）
+        const unmasteredPool = RAW_QUESTIONS.filter(x => !masteredSet.has(x.id));
+        if (unmasteredPool.length === 0) {
+            alert("🎉 所有題目均已標記為熟記！請先清空或調整熟記名單。");
+            return;
+        }
+        const count = Math.min(Math.max(1, parseInt(document.getElementById('input-count').value, 10) || 1), unmasteredPool.length);
+        selected = getRandomSubarray(unmasteredPool, count);
     } else if (mode === 'custom') {
-        let start = (parseInt(document.getElementById('custom-start').value, 10) || 1) - 1;
+        // 模式三：自訂指定範圍（直接過濾掉區間內的已熟記題）
+        let start = (parseInt(document.getElementById('custom-start').value, 10) || 1);
         let end = (parseInt(document.getElementById('custom-end').value, 10) || 90);
         if (start > end) [start, end] = [end, start];
-        selected = RAW_QUESTIONS.slice(Math.max(0, start), Math.min(90, end));
+        
+        selected = RAW_QUESTIONS.filter(q => q.id >= start && q.id <= end && !masteredSet.has(q.id));
+        if (selected.length === 0) {
+            alert(`題號 ${start} 至 ${end} 區間內的題目已全部標記為熟記！`);
+            return;
+        }
     }
 
     if (selected.length === 0) {
@@ -664,7 +690,7 @@ function showQuestion() {
     const chk = document.getElementById('chk-mastered');
     chk.checked = isMastered;
 
-    // 判斷是否顯示「跳過」按鈕
+    // 判斷是否顯示「跳過」按鈕（僅在抽中熟記題目時顯示）
     const skipBtn = document.getElementById('btn-skip');
     if (isMastered) {
         skipBtn.classList.remove('hidden');
@@ -688,7 +714,6 @@ function showQuestion() {
 
 // 點擊「已熟記，直接跳過」
 function skipMasteredQuestion() {
-    // 不計入 attemptedCount，不算答對也不算答錯，直接下一題
     nextQuestion();
 }
 
@@ -780,7 +805,7 @@ function showResult() {
     
     document.getElementById('res-rate').textContent = `${rate}%`;
     document.getElementById('res-detail').innerHTML = `
-        實際作答 <strong>${attemptedCount}</strong> 題（跳過熟記 ${skippedCount} 題）<br>
+        實際作答 <strong>${attemptedCount}</strong> 題${skippedCount > 0 ? `（跳過熟記 ${skippedCount} 題）` : ''}<br>
         答對 <strong>${score}</strong> 題 ｜ 答錯 <strong>${attemptedCount - score}</strong> 題
     `;
 
