@@ -202,11 +202,31 @@
         .stat-card { background-color: #f1f5f9; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: center; }
         .stat-rate { font-size: 2rem; font-weight: bold; color: var(--primary); margin: 0.5rem 0; }
         
-        /* 已熟記題庫清單樣式 */
+        /* 總題庫清單與篩選標籤 */
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .filter-tab {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .filter-tab.active {
+            background-color: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
         .mastered-list {
             max-height: 60vh;
             overflow-y: auto;
-            margin: 1rem 0;
+            margin: 0.5rem 0 1rem 0;
             padding-right: 0.25rem;
             display: flex;
             flex-direction: column;
@@ -217,6 +237,11 @@
             border-radius: 8px;
             padding: 1rem;
             background: #fff;
+            transition: border-color 0.2s;
+        }
+        .mastered-item-card.is-mastered {
+            border-color: #93c5fd;
+            background-color: #f8fafc;
         }
         .mastered-item-header {
             display: flex;
@@ -267,7 +292,7 @@
         <div class="mastered-info-badge" id="mastered-badge">
             <span id="mastered-stat-text">已標記熟記：0 題 / 共 90 題</span>
             <div class="mastered-actions">
-                <button class="btn-text-sm" onclick="showMasteredList()">查看已熟記題庫</button>
+                <button class="btn-text-sm" onclick="showMasteredList()">瀏覽總題庫 / 勾選熟記</button>
                 <button class="btn-text-sm btn-text-danger" onclick="resetMastered()">清空熟記</button>
             </div>
         </div>
@@ -338,9 +363,14 @@
         <button class="btn" onclick="startNewQuizClick()" style="margin-top: 1rem;">開始測驗</button>
     </div>
 
-    <!-- 查看已熟記題庫畫面 -->
+    <!-- 查看總題庫與管理畫面 -->
     <div id="view-mastered" class="hidden">
-        <h1>已熟記題庫清單</h1>
+        <h1>總題庫瀏覽與熟記管理</h1>
+        <div class="filter-tabs">
+            <button class="filter-tab active" id="tab-all" onclick="switchBankFilter('all')">全部 (90)</button>
+            <button class="filter-tab" id="tab-unmastered" onclick="switchBankFilter('unmastered')">僅未熟記</button>
+            <button class="filter-tab" id="tab-mastered" onclick="switchBankFilter('mastered')">僅已熟記</button>
+        </div>
         <div id="mastered-list-container" class="mastered-list"></div>
         <button class="btn btn-secondary" onclick="hideMasteredList()" style="margin-top: 1rem;">關閉並返回主頁</button>
     </div>
@@ -495,7 +525,8 @@ let score = 0;
 let attemptedCount = 0;
 let wrongQuestions = [];
 let activeMatchRule = 'smart';
-let isQuizActive = false; // 是否有正在進行的測驗
+let isQuizActive = false;
+let currentBankFilter = 'all'; // 總題庫當前篩選 ('all', 'unmastered', 'mastered')
 
 function saveMastered() {
     localStorage.setItem('mastered_questions', JSON.stringify([...masteredSet]));
@@ -545,9 +576,22 @@ function toggleMastered(isChecked) {
     }
 }
 
-function unmarkMastered(qId) {
-    masteredSet.delete(qId);
+// 在總題庫列表中切換特定題目的熟記狀態
+function toggleMasteredFromBank(qId, isChecked) {
+    if (isChecked) {
+        masteredSet.add(qId);
+    } else {
+        masteredSet.delete(qId);
+    }
     saveMastered();
+    renderMasteredList();
+}
+
+function switchBankFilter(filter) {
+    currentBankFilter = filter;
+    document.getElementById('tab-all').className = `filter-tab ${filter === 'all' ? 'active' : ''}`;
+    document.getElementById('tab-unmastered').className = `filter-tab ${filter === 'unmastered' ? 'active' : ''}`;
+    document.getElementById('tab-mastered').className = `filter-tab ${filter === 'mastered' ? 'active' : ''}`;
     renderMasteredList();
 }
 
@@ -569,10 +613,22 @@ function hideMasteredList() {
 
 function renderMasteredList() {
     const container = document.getElementById('mastered-list-container');
-    const masteredQuestions = RAW_QUESTIONS.filter(q => masteredSet.has(q.id));
+    
+    // 根據標籤篩選題目
+    let displayList = RAW_QUESTIONS;
+    if (currentBankFilter === 'mastered') {
+        displayList = RAW_QUESTIONS.filter(q => masteredSet.has(q.id));
+    } else if (currentBankFilter === 'unmastered') {
+        displayList = RAW_QUESTIONS.filter(q => !masteredSet.has(q.id));
+    }
 
-    if (masteredQuestions.length === 0) {
-        container.innerHTML = `<div class="empty-state">目前尚未標記任何熟記題目！<br>在測驗時勾選「這題我已背熟」即可加入此清單。</div>`;
+    // 更新標籤上的題數統計
+    document.getElementById('tab-all').textContent = `全部 (90)`;
+    document.getElementById('tab-unmastered').textContent = `僅未熟記 (${90 - masteredSet.size})`;
+    document.getElementById('tab-mastered').textContent = `僅已熟記 (${masteredSet.size})`;
+
+    if (displayList.length === 0) {
+        container.innerHTML = `<div class="empty-state">目前此篩選條件下沒有任何題目！</div>`;
         return;
     }
 
@@ -582,19 +638,25 @@ function renderMasteredList() {
         hard: { label: "難", class: "diff-tag-hard" }
     };
 
-    container.innerHTML = masteredQuestions.map(item => `
-        <div class="mastered-item-card">
-            <div class="mastered-item-header">
-                <div>
-                    <span class="diff-tag ${diffMap[item.diff].class}">${diffMap[item.diff].label}</span>
-                    <strong style="margin-left: 0.35rem; font-size: 0.9rem; color: var(--text-muted);">題號 #${item.id}</strong>
+    container.innerHTML = displayList.map(item => {
+        const isM = masteredSet.has(item.id);
+        return `
+            <div class="mastered-item-card ${isM ? 'is-mastered' : ''}">
+                <div class="mastered-item-header">
+                    <div>
+                        <span class="diff-tag ${diffMap[item.diff].class}">${diffMap[item.diff].label}</span>
+                        <strong style="margin-left: 0.35rem; font-size: 0.9rem; color: var(--text-muted);">題號 #${item.id}</strong>
+                    </div>
+                    <label class="mastered-toggle" style="font-size: 0.85rem; color: ${isM ? 'var(--primary)' : 'var(--text-muted)'}; font-weight: ${isM ? '600' : 'normal'};">
+                        <input type="checkbox" ${isM ? 'checked' : ''} onchange="toggleMasteredFromBank(${item.id}, this.checked)">
+                        <span>這題我已背熟</span>
+                    </label>
                 </div>
-                <button class="btn-text-sm btn-text-danger" onclick="unmarkMastered(${item.id})">取消熟記</button>
+                <div class="mastered-item-q">${escapeHtml(item.q)}</div>
+                <div class="mastered-item-a"><strong>標準答案：</strong>${escapeHtml(item.a)}</div>
             </div>
-            <div class="mastered-item-q">${escapeHtml(item.q)}</div>
-            <div class="mastered-item-a"><strong>標準答案：</strong>${escapeHtml(item.a)}</div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // 暫停並返回主頁
@@ -605,7 +667,6 @@ function pauseAndGoHome() {
     renderMasteredStat();
 }
 
-// 渲染主頁暫停提示 Banner
 function renderPauseBanner() {
     const banner = document.getElementById('panel-paused-quiz');
     if (isQuizActive && quizList.length > 0) {
@@ -618,20 +679,17 @@ function renderPauseBanner() {
     }
 }
 
-// 繼續進行未完成的測驗
 function resumeQuiz() {
     if (!isQuizActive || quizList.length === 0) return;
     document.getElementById('view-setup').classList.add('hidden');
     document.getElementById('view-quiz').classList.remove('hidden');
     
-    // 如果當前題目尚未提交，聚焦輸入框
     const ansArea = document.getElementById('quiz-answer');
     if (!ansArea.disabled) {
         ansArea.focus();
     }
 }
 
-// 放棄未完成進度
 function discardQuiz() {
     if (confirm("確定要放棄當前的測驗進度嗎？")) {
         isQuizActive = false;
@@ -644,7 +702,6 @@ function discardQuiz() {
     }
 }
 
-// 點擊「開始測驗」按鈕時的確認處理
 function startNewQuizClick() {
     if (isQuizActive) {
         if (!confirm("目前有尚未完成的測驗進度，開始新測驗將覆蓋當前進度，確定開始嗎？")) {
@@ -654,7 +711,6 @@ function startNewQuizClick() {
     startQuiz();
 }
 
-// 寬鬆模式的文字清理
 function cleanSmartText(s) {
     return s ? s.replace(/[\s\(\)（）\.,，。、:：;；—\-_【】「」『』]/g, '')
                 .replace(/[0-9０-９]/g, '')
@@ -662,7 +718,6 @@ function cleanSmartText(s) {
                 .trim() : '';
 }
 
-// 嚴格模式的字串正規化
 function normalizeExactText(s) {
     if (!s) return '';
     return s.replace(/\s+/g, '')
@@ -949,7 +1004,7 @@ function nextQuestion() {
 }
 
 function showResult() {
-    isQuizActive = false; // 測驗結束，清空進行中狀態
+    isQuizActive = false;
     document.getElementById('view-quiz').classList.add('hidden');
     document.getElementById('view-result').classList.remove('hidden');
 
