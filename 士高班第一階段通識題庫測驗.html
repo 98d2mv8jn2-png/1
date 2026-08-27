@@ -160,7 +160,7 @@
         .feedback.correct { background-color: #dcfce7; border: 1px solid #bbf7d0; color: var(--success); }
         .feedback.wrong { background-color: #fee2e2; border: 1px solid #fecaca; color: var(--danger); }
         .feedback-title { font-weight: bold; font-size: 1.05rem; margin-bottom: 0.5rem; }
-        .diff-view { background: #fff; border: 1px solid var(--border); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.6; color: var(--text); }
+        .diff-view { background: #fff; border: 1px solid var(--border); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.6; color: var(--text); word-break: break-all; }
         .diff-del { background-color: #fecaca; color: #991b1b; text-decoration: line-through; padding: 0 2px; }
         .diff-ins { background-color: #fed7aa; color: #9a3412; font-weight: bold; padding: 0 2px; }
         .stat-card { background-color: #f1f5f9; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: center; }
@@ -237,6 +237,14 @@
         </div>
 
         <div class="setup-group">
+            <label for="select-match-rule">答案判定方式：</label>
+            <select id="select-match-rule">
+                <option value="smart" selected>💡 寬鬆模式（要點字對即可，免編號標點、順序不拘）</option>
+                <option value="exact">🎯 嚴格模式（一字不漏，含編號/順序/標點；全半形皆可）</option>
+            </select>
+        </div>
+
+        <div class="setup-group">
             <label for="select-mode">測驗模式：</label>
             <select id="select-mode" onchange="handleModeChange()">
                 <option value="ratio" selected>依難易度配題（含熟記題，出現可跳過）</option>
@@ -302,7 +310,7 @@
         </div>
         
         <div class="question-box" id="quiz-question"></div>
-        <textarea id="quiz-answer" placeholder="請輸入答案（免標點、免編號、順序不拘皆可自動判定）..."></textarea>
+        <textarea id="quiz-answer" placeholder="請輸入答案..."></textarea>
         
         <div class="quiz-btn-actions">
             <button class="btn btn-skip hidden" id="btn-skip" onclick="skipMasteredQuestion()">⏭️ 已熟記，直接跳過</button>
@@ -436,6 +444,7 @@ let currentIndex = 0;
 let score = 0;
 let attemptedCount = 0; // 實際作答題數（排除跳過題）
 let wrongQuestions = []; // 紀錄本次作答錯誤的題目
+let activeMatchRule = 'smart'; // 當前判定規則 ('smart' 或 'exact')
 
 function saveMastered() {
     localStorage.setItem('mastered_questions', JSON.stringify([...masteredSet]));
@@ -538,23 +547,44 @@ function renderMasteredList() {
     `).join('');
 }
 
-function cleanText(s) {
+// 寬鬆模式的文字清理（完全移除標點、數字與空白）
+function cleanSmartText(s) {
     return s ? s.replace(/[\s\(\)（）\.,，。、:：;；—\-_【】「」『』]/g, '')
                 .replace(/[0-9０-９]/g, '')
                 .toLowerCase()
                 .trim() : '';
 }
 
+// 嚴格模式的字串正規化（將全半形標點、英數字及空白統一，保留字詞結構）
+function normalizeExactText(s) {
+    if (!s) return '';
+    return s.replace(/\s+/g, '') // 忽略純空白差距
+            // 統一括號
+            .replace(/[（\(\[\{【]/g, '（')
+            .replace(/[）\)\]\}】]/g, '）')
+            // 統一標點
+            .replace(/[,，]/g, '，')
+            .replace(/[.。]/g, '。')
+            .replace(/[:：]/g, '：')
+            .replace(/[;；]/g, '；')
+            .replace(/[、]/g, '、')
+            .replace(/[—\-_]/g, '—')
+            // 數字全形轉半形
+            .replace(/[０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0))
+            .trim();
+}
+
 function extractItems(s) {
     if (!s) return [];
     return s.split(/(?:[（\(]?\s*\d+\s*[）\.\、\)]|\n+)/)
-            .map(item => cleanText(item))
+            .map(item => cleanSmartText(item))
             .filter(item => item.length > 0);
 }
 
+// 智能要點寬鬆判定
 function checkSmartMatch(userRaw, standardRaw) {
-    const cleanU = cleanText(userRaw);
-    const cleanS = cleanText(standardRaw);
+    const cleanU = cleanSmartText(userRaw);
+    const cleanS = cleanSmartText(standardRaw);
     if (!cleanU) return false;
     if (cleanU === cleanS) return true;
 
@@ -577,6 +607,13 @@ function checkSmartMatch(userRaw, standardRaw) {
         }
     }
     return false;
+}
+
+// 一字不漏嚴格判定
+function checkExactMatch(userRaw, standardRaw) {
+    const normU = normalizeExactText(userRaw);
+    const normS = normalizeExactText(standardRaw);
+    return (normU.length > 0 && normU === normS);
 }
 
 function handleModeChange() {
@@ -617,11 +654,11 @@ function getRandomSubarray(arr, size) {
 }
 
 function startQuiz() {
+    activeMatchRule = document.getElementById('select-match-rule').value;
     const mode = document.getElementById('select-mode').value;
     let selected = [];
 
     if (mode === 'ratio') {
-        // 模式一：依難易度配題（不排除熟記題，答題時可手動跳過）
         const easyCount = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), 36);
         const midCount = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), 36);
         const hardCount = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), 18);
@@ -636,7 +673,6 @@ function startQuiz() {
             ...getRandomSubarray(hardPool, hardCount)
         ];
     } else if (mode === 'all') {
-        // 模式二：全題庫隨機抽取（直接過濾掉已熟記題）
         const unmasteredPool = RAW_QUESTIONS.filter(x => !masteredSet.has(x.id));
         if (unmasteredPool.length === 0) {
             alert("🎉 所有題目均已標記為熟記！請先清空或調整熟記名單。");
@@ -645,7 +681,6 @@ function startQuiz() {
         const count = Math.min(Math.max(1, parseInt(document.getElementById('input-count').value, 10) || 1), unmasteredPool.length);
         selected = getRandomSubarray(unmasteredPool, count);
     } else if (mode === 'custom') {
-        // 模式三：自訂指定範圍（直接過濾掉區間內的已熟記題）
         let start = (parseInt(document.getElementById('custom-start').value, 10) || 1);
         let end = (parseInt(document.getElementById('custom-end').value, 10) || 90);
         if (start > end) [start, end] = [end, start];
@@ -690,7 +725,7 @@ function showQuestion() {
     const chk = document.getElementById('chk-mastered');
     chk.checked = isMastered;
 
-    // 判斷是否顯示「跳過」按鈕（僅在抽中熟記題目時顯示）
+    // 判斷是否顯示「跳過」按鈕
     const skipBtn = document.getElementById('btn-skip');
     if (isMastered) {
         skipBtn.classList.remove('hidden');
@@ -702,6 +737,13 @@ function showQuestion() {
     ansArea.value = '';
     ansArea.disabled = false;
     
+    // 動態設定 placeholder 提示
+    if (activeMatchRule === 'exact') {
+        ansArea.placeholder = "請輸入完整標準答案（一字不漏模式：須包含編號、順序與標點，全半形皆可）...";
+    } else {
+        ansArea.placeholder = "請輸入答案（寬鬆模式：免標點、免編號、順序不拘皆可自動判定）...";
+    }
+
     document.getElementById('btn-submit').classList.remove('hidden');
     document.getElementById('btn-next').classList.add('hidden');
     
@@ -712,7 +754,6 @@ function showQuestion() {
     ansArea.focus();
 }
 
-// 點擊「已熟記，直接跳過」
 function skipMasteredQuestion() {
     nextQuestion();
 }
@@ -756,7 +797,12 @@ function submitAnswer() {
     const rawS = item.a;
     const feedback = document.getElementById('quiz-feedback');
     
-    const isCorrect = checkSmartMatch(rawU, rawS);
+    let isCorrect = false;
+    if (activeMatchRule === 'exact') {
+        isCorrect = checkExactMatch(rawU, rawS);
+    } else {
+        isCorrect = checkSmartMatch(rawU, rawS);
+    }
 
     document.getElementById('quiz-answer').disabled = true;
     document.getElementById('btn-submit').classList.add('hidden');
@@ -768,16 +814,23 @@ function submitAnswer() {
         score++;
         feedback.className = 'feedback correct';
         feedback.innerHTML = `
-            <div class="feedback-title">✅ 完全正確！要點齊全</div>
+            <div class="feedback-title">✅ 完全正確！${activeMatchRule === 'exact' ? '（一字不漏完全符合）' : '（要點齊全）'}</div>
             <div style="font-weight: 600; margin-top: 0.5rem;">【標準答案】：</div>
             <div class="diff-view">${rawS}</div>
         `;
     } else {
         wrongQuestions.push(item);
         feedback.className = 'feedback wrong';
-        const diff = computeDiff(cleanText(rawS), cleanText(rawU));
+        
+        let diff;
+        if (activeMatchRule === 'exact') {
+            diff = computeDiff(normalizeExactText(rawS), normalizeExactText(rawU));
+        } else {
+            diff = computeDiff(cleanSmartText(rawS), cleanSmartText(rawU));
+        }
+
         feedback.innerHTML = `
-            <div class="feedback-title">❌ 答案有誤（或要點缺漏）</div>
+            <div class="feedback-title">❌ 答案有誤（${activeMatchRule === 'exact' ? '一字不漏比對未完全吻合' : '要點缺漏或不正確'}）</div>
             <div style="font-weight: 600; margin-top: 0.5rem;">【標準答案】：</div>
             <div class="diff-view">${rawS}</div>
             <div style="font-weight: 600; margin-top: 0.5rem;">【缺漏/錯誤比對】：</div>
@@ -806,7 +859,8 @@ function showResult() {
     document.getElementById('res-rate').textContent = `${rate}%`;
     document.getElementById('res-detail').innerHTML = `
         實際作答 <strong>${attemptedCount}</strong> 題${skippedCount > 0 ? `（跳過熟記 ${skippedCount} 題）` : ''}<br>
-        答對 <strong>${score}</strong> 題 ｜ 答錯 <strong>${attemptedCount - score}</strong> 題
+        答對 <strong>${score}</strong> 題 ｜ 答錯 <strong>${attemptedCount - score}</strong> 題<br>
+        <span style="font-size:0.85rem; color: var(--text-muted);">（判定規則：${activeMatchRule === 'exact' ? '嚴格模式' : '寬鬆模式'}）</span>
     `;
 
     // 篩選出「本次答錯」且「尚未標記背熟」的題目
