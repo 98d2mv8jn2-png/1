@@ -278,6 +278,66 @@
             color: var(--text-muted);
             font-size: 0.95rem;
         }
+        
+        /* 90題全熟記彈窗樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            padding: 1.5rem;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-card {
+            background: #ffffff;
+            border-radius: 16px;
+            max-width: 480px;
+            width: 100%;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            animation: popUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-icon {
+            font-size: 4rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+            animation: bounce 1.2s infinite alternate ease-in-out;
+        }
+        .modal-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #b45309;
+            margin-bottom: 0.75rem;
+            letter-spacing: 1px;
+        }
+        .modal-desc {
+            font-size: 1.05rem;
+            color: #334155;
+            line-height: 1.6;
+            margin-bottom: 1.75rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes popUp {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes bounce {
+            from { transform: translateY(0px) scale(1); }
+            to { transform: translateY(-8px) scale(1.08); }
+        }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -416,6 +476,19 @@
     </div>
 </div>
 
+<!-- 恭喜神功大成全螢幕彈窗 -->
+<div id="modal-all-mastered" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-icon">🎖️</div>
+        <div class="modal-title">恭喜神功大成！</div>
+        <div class="modal-desc">
+            太強了！您已將通識課程全數 <strong>90 題</strong> 題庫完全背熟！<br>
+            預祝高班學科測驗旗開得勝、奪得佳績！
+        </div>
+        <button class="btn btn-warning" onclick="closeMasteredSuccessModal()" style="font-size: 1.05rem; padding: 0.85rem;">🏆 凱旋返回主頁</button>
+    </div>
+</div>
+
 <script>
 const RAW_QUESTIONS = [
     // 🟢 易 (36題, id: 1~36)
@@ -518,7 +591,7 @@ const RAW_QUESTIONS = [
 let masteredSet = new Set(JSON.parse(localStorage.getItem('mastered_questions') || '[]'));
 
 let quizList = [];
-let userAnswers = []; // 保存每題的作答狀態、草稿與檢討結果
+let userAnswers = [];
 let currentIndex = 0;
 let activeMatchRule = 'smart';
 let isQuizActive = false;
@@ -527,6 +600,30 @@ let currentBankFilter = 'all';
 function saveMastered() {
     localStorage.setItem('mastered_questions', JSON.stringify([...masteredSet]));
     renderMasteredStat();
+    checkAllMasteredCelebration();
+}
+
+function checkAllMasteredCelebration() {
+    if (masteredSet.size === RAW_QUESTIONS.length) {
+        document.getElementById('modal-all-mastered').classList.remove('hidden');
+    }
+}
+
+function closeMasteredSuccessModal() {
+    document.getElementById('modal-all-mastered').classList.add('hidden');
+    isQuizActive = false;
+    quizList = [];
+    userAnswers = [];
+    currentIndex = 0;
+    
+    document.getElementById('view-quiz').classList.add('hidden');
+    document.getElementById('view-mastered').classList.add('hidden');
+    document.getElementById('view-result').classList.add('hidden');
+    document.getElementById('view-setup').classList.remove('hidden');
+    
+    renderMasteredStat();
+    handleModeChange();
+    renderPauseBanner();
 }
 
 function renderMasteredStat() {
@@ -875,7 +972,6 @@ function showQuestion() {
     document.getElementById('quiz-progress').textContent = `第 ${currentIndex + 1} 題 / 共 ${quizList.length} 題`;
     document.getElementById('quiz-question').textContent = item.q;
     
-    // 上一題按鈕狀態控制
     const btnPrev = document.getElementById('btn-prev');
     btnPrev.disabled = (currentIndex === 0);
 
@@ -895,7 +991,6 @@ function showQuestion() {
         ansArea.placeholder = "請輸入答案（寬鬆模式：免標點、免編號、順序不拘皆可自動判定）...";
     }
 
-    // 判斷該題是否已經提交作答過或跳過
     if (record && record.isSubmitted) {
         ansArea.value = record.userAnswer || '';
         ansArea.disabled = true;
@@ -1069,7 +1164,6 @@ function showResult() {
         <span style="font-size:0.85rem; color: var(--text-muted);">（判定規則：${activeMatchRule === 'exact' ? '嚴格模式' : '寬鬆模式'}）</span>
     `;
 
-    // 收集所有答錯的題目（且未在題庫中標記為熟記）
     const unmasteredWrong = [];
     userAnswers.forEach((ans, idx) => {
         if (ans && ans.isSubmitted && !ans.isCorrect && !ans.isSkipped) {
@@ -1099,7 +1193,6 @@ function restartQuiz() {
     handleModeChange();
 }
 
-// 初始化統計標記與模式面板
 renderMasteredStat();
 handleModeChange();
 renderPauseBanner();
