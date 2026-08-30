@@ -167,21 +167,6 @@
         }
         .mastered-toggle input { cursor: pointer; width: 16px; height: 16px; }
         
-        .pause-banner {
-            background-color: #fef3c7;
-            border: 1px solid #fde68a;
-            border-radius: 8px;
-            padding: 0.85rem 1rem;
-            margin-bottom: 1.15rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            color: #78350f;
-        }
-        .pause-title { font-weight: bold; font-size: 0.9rem; }
-        .pause-desc { font-size: 0.82rem; }
-        .pause-btns { display: flex; gap: 0.5rem; }
-        
         .question-box { font-size: 1.05rem; font-weight: 600; margin-bottom: 1rem; line-height: 1.6; }
         .feedback { margin-top: 1rem; padding: 1rem; border-radius: 6px; }
         .feedback.correct { background-color: #dcfce7; border: 1px solid #bbf7d0; color: var(--success); }
@@ -205,7 +190,7 @@
             border-radius: 16px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
             cursor: grab;
-            will-change: transform, opacity;
+            will-change: transform;
             transform-origin: center center;
         }
         .flashcard:active { cursor: grabbing; }
@@ -214,9 +199,10 @@
             height: 100%;
             position: relative;
             transform-style: preserve-3d;
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
             border-radius: 16px;
-            pointer-events: none;
+            pointer-events: none; /* 讓事件直接穿透至外層 flashcard 與 face，避免雙重觸發 */
+            will-change: transform;
         }
         .flashcard-inner.is-flipped { transform: rotateY(180deg); }
         .flashcard-face {
@@ -234,6 +220,7 @@
             border: 2px solid var(--border);
             background-color: var(--card-bg);
             pointer-events: auto;
+            transform: translateZ(0);
         }
         .flashcard-front { border-color: #93c5fd; }
         .flashcard-back { transform: rotateY(180deg); border-color: #86efac; background-color: var(--primary-light); }
@@ -325,16 +312,6 @@
                 <div class="dash-title">難題 (18)</div>
                 <div class="dash-val" id="dash-hard">0/18</div>
                 <div class="dash-bar-bg"><div class="dash-bar-fill" id="dash-bar-hard" style="background:#b91c1c;"></div></div>
-            </div>
-        </div>
-
-        <!-- 進行中進度恢復提示 -->
-        <div id="panel-paused-quiz" class="pause-banner hidden">
-            <div class="pause-title">📌 偵測到有尚未完成的測驗進度</div>
-            <div class="pause-desc" id="pause-status-desc">目前進度：第 1 題 / 共 30 題</div>
-            <div class="pause-btns">
-                <button class="btn btn-success" onclick="resumeQuiz()" style="font-size:0.85rem; padding:0.4rem 0.8rem;">▶️ 繼續測驗</button>
-                <button class="btn btn-secondary" onclick="discardQuiz()" style="font-size:0.85rem; padding:0.4rem 0.8rem;">放棄進度</button>
             </div>
         </div>
 
@@ -655,36 +632,26 @@ try {
     localStorage.clear();
 }
 
-// 修正連續學習天數計算邏輯
 function updateStudyStreak() {
-    const todayStr = new Date().toISOString().slice(0, 10); // 格式 YYYY-MM-DD
-    if (streakData.lastDate === todayStr) {
-        // 今天已經算過
-        return;
-    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (streakData.lastDate === todayStr) return;
 
     if (!streakData.lastDate) {
-        // 第一次使用
         streakData.days = 1;
         streakData.lastDate = todayStr;
     } else {
         const lastDateObj = new Date(streakData.lastDate);
         const todayObj = new Date(todayStr);
-        const diffTime = todayObj - lastDateObj;
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const diffDays = Math.round((todayObj - lastDateObj) / (1000 * 60 * 60 * 24));
 
         if (diffDays === 1) {
-            // 連續天數 + 1
             streakData.days += 1;
             streakData.lastDate = todayStr;
         } else if (diffDays > 1) {
-            // 中斷超過一天，從 1 開始重新計算
             streakData.days = 1;
             streakData.lastDate = todayStr;
         }
-        // diffDays === 0 的情況已由上面 todayStr 攔截
     }
-
     try {
         localStorage.setItem('study_streak_data_nco', JSON.stringify(streakData));
     } catch (e) {}
@@ -693,9 +660,7 @@ function updateStudyStreak() {
 function renderStreakBadge() {
     updateStudyStreak();
     const badge = document.getElementById('study-streak-badge');
-    if (badge) {
-        badge.textContent = `🔥 連續學習 ${streakData.days || 1} 天`;
-    }
+    if (badge) badge.textContent = `🔥 連續學習 ${streakData.days || 1} 天`;
 }
 
 let quizList = [];
@@ -904,8 +869,8 @@ function submitAnswer() {
     const rawS = item.a;
     const feedback = document.getElementById('quiz-feedback');
     
-    const cleanU = rawU.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()、，。；：\s]/g, '');
-    const cleanS = rawS.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()、，。；：\s]/g, '');
+    const cleanU = rawU.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()v，。；：\s]/g, '');
+    const cleanS = rawS.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()v，。；：\s]/g, '');
     let isCorrect = cleanS.includes(cleanU) && cleanU.length >= 2;
     if (activeMatchRule === 'exact') {
         isCorrect = (rawU.trim() === rawS.trim());
@@ -1009,7 +974,6 @@ function changeCardScope(scope) {
     renderCardContent();
 }
 
-// 重新開始功能：讓字卡直接回到最前面那題
 function restartFlashcards() {
     cardIndex = 0;
     cardLastPositions[currentCardScope] = 0;
@@ -1086,23 +1050,23 @@ function animateSlideTo(direction, onComplete) {
     if (!card) { onComplete(); return; }
     const destX = (direction === 'left') ? -window.innerWidth * 1.1 : window.innerWidth * 1.1;
     
-    card.style.transition = 'transform 0.22s ease-out, opacity 0.2s ease-out';
-    card.style.transform = `translate(${destX}px, 0px) rotate(${direction === 'left' ? -8 : 8}deg)`;
+    card.style.transition = 'transform 0.18s ease-out, opacity 0.15s ease-out';
+    card.style.transform = `translate(${destX}px, 0px) rotate(${direction === 'left' ? -6 : 6}deg)`;
     card.style.opacity = '0';
 
     setTimeout(() => {
         onComplete();
-        const startX = (direction === 'left') ? window.innerWidth * 0.7 : -window.innerWidth * 0.7;
+        const startX = (direction === 'left') ? window.innerWidth * 0.6 : -window.innerWidth * 0.6;
         card.style.transition = 'none';
-        card.style.transform = `translate(${startX}px, 0px) rotate(${direction === 'left' ? 6 : -6}deg)`;
+        card.style.transform = `translate(${startX}px, 0px) rotate(${direction === 'left' ? 4 : -4}deg)`;
         card.style.opacity = '0';
 
         requestAnimationFrame(() => {
-            card.style.transition = 'transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.2), opacity 0.2s ease-out';
+            card.style.transition = 'transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.2), opacity 0.15s ease-out';
             card.style.transform = 'translate(0px, 0px) rotate(0deg)';
             card.style.opacity = '1';
         });
-    }, 200);
+    }, 180);
 }
 
 function nextCard() {
@@ -1132,7 +1096,7 @@ function exitFlashcards() {
     renderDashboard();
 }
 
-/* 👆 左右物理滑動手勢監聽 */
+/* 👆 左右物理滑動手勢監聽（防止子元素事件冒泡造成雙重觸發） */
 let isDragging = false;
 let startX = 0;
 let startY = 0;
@@ -1159,8 +1123,8 @@ function setupSwipeGestures() {
         const deltaX = currentX - startX;
         const deltaY = currentY - startY;
 
-        const rotation = deltaX * 0.04;
-        cardEl.style.transform = `translate(${deltaX}px, ${deltaY * 0.2}px) rotate(${rotation}deg)`;
+        const rotation = deltaX * 0.03;
+        cardEl.style.transform = `translate(${deltaX}px, ${deltaY * 0.15}px) rotate(${rotation}deg)`;
         cardEl.style.opacity = Math.max(0.4, 1 - Math.abs(deltaX) / (window.innerWidth * 0.8));
     }
 
@@ -1177,7 +1141,7 @@ function setupSwipeGestures() {
             return;
         }
 
-        if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
             if (deltaX < 0) {
                 nextCard();
             } else {
@@ -1193,11 +1157,12 @@ function setupSwipeGestures() {
     }
 
     function springBack() {
-        cardEl.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.2s ease';
+        cardEl.style.transition = 'transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.15s ease';
         cardEl.style.transform = 'translate(0px, 0px) rotate(0deg)';
         cardEl.style.opacity = '1';
     }
 
+    // 統一使用單一監聽器並透過 stopPropagation 確保只觸發一次
     cardEl.addEventListener('touchstart', (e) => {
         if (e.target.closest('button')) return;
         handleStart(e.touches[0].clientX, e.touches[0].clientY);
@@ -1208,7 +1173,10 @@ function setupSwipeGestures() {
         handleMove(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: true });
 
-    cardEl.addEventListener('touchend', handleEnd);
+    cardEl.addEventListener('touchend', (e) => {
+        if (e.target.closest('button')) return;
+        handleEnd();
+    });
 
     cardEl.addEventListener('mousedown', (e) => {
         if (e.target.closest('button')) return;
