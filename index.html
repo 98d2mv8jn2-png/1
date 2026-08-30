@@ -450,7 +450,7 @@
     <!-- 🎴 智慧字卡背誦畫面 -->
     <div id="view-flashcard" class="hidden">
         <div class="quiz-topbar">
-            <select id="select-card-scope" style="width:auto; padding:0.3rem 0.6rem; font-size:0.85rem; font-weight:700; border-radius:20px; border-color:#c7d2fe; background:var(--primary-light); color:var(--primary); outline:none; cursor:pointer;">
+            <select id="select-card-scope" style="width:auto; padding:0.3rem 0.6rem; font-size:0.85rem; font-weight:700; border-radius:20px; border-color:#c7d2fe; background:var(--primary-light); color:var(--primary); outline:none; cursor:pointer;" onchange="changeCardScope(this.value)">
                 <option value="unmastered" selected>📚 僅未熟記題庫</option>
                 <option value="all">🌐 全部總題庫 (90題)</option>
                 <option value="easy">🟢 僅「易」題 (36題)</option>
@@ -459,6 +459,7 @@
             </select>
             
             <div class="quiz-topbar-right">
+                <button class="btn-text-sm" id="btn-card-restart" type="button" style="font-weight:700; color:var(--warning);" title="回到第一題">🔄 重新開始</button>
                 <label class="mastered-toggle" title="正反題面互換訓練">
                     <input type="checkbox" id="chk-reverse">
                     <span>🔄 反向</span>
@@ -478,7 +479,6 @@
                         <div class="flashcard-side-label">
                             <span id="card-progress">📝 題目 (1/90)</span>
                             <div style="display:flex; gap:0.4rem; align-items:center;">
-                                <button class="btn-text-sm" id="btn-speak-front" type="button" title="語音朗讀">🔊 朗讀</button>
                                 <span id="card-diff-tag" class="diff-tag diff-tag-easy">易</span>
                             </div>
                         </div>
@@ -488,7 +488,6 @@
                     <div class="flashcard-face flashcard-back">
                         <div class="flashcard-side-label">
                             <span id="card-back-title">💡 標準答案</span>
-                            <button class="btn-text-sm" id="btn-speak-back" type="button" style="color:var(--success);" title="語音朗讀">🔊 朗讀</button>
                         </div>
                         <div class="flashcard-body" id="card-back-body" style="font-weight:500;"></div>
                         <div class="flashcard-hint">👆 點擊卡片翻回正面 ｜ 👈 左右滑動切換 👉</div>
@@ -523,13 +522,12 @@
     <!-- 測驗結算畫面 -->
     <div id="view-result" class="hidden">
         <h1>測驗結算報告</h1>
-        <div class="stat-card">
-            <div>本次成績正確率</div>
-            <div class="stat-rate" id="res-rate">0%</div>
+        <div class="stat-card" style="padding: 1.5rem; text-align: center; margin-bottom: 1.25rem; background: var(--primary-light); border-radius: 10px;">
+            <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">本次成績正確率</div>
+            <div class="stat-rate" id="res-rate" style="font-size: 2.5rem; font-weight: 800; color: var(--primary); margin: 0.5rem 0;">0%</div>
             <div id="res-detail" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;"></div>
         </div>
         <div style="display:flex; flex-direction:column; gap:0.75rem;">
-            <button class="btn btn-warning hidden" id="btn-retry-unmastered" type="button">複習本次錯題（未熟記）</button>
             <button class="btn btn-secondary" id="btn-restart-quiz" type="button">重新設定 / 再次測驗</button>
         </div>
     </div>
@@ -546,19 +544,6 @@
             <button class="btn btn-warning" id="btn-apply-backup" type="button">📥 貼上並還原</button>
             <button class="btn btn-secondary" id="btn-close-backup" type="button">關閉</button>
         </div>
-    </div>
-</div>
-
-<!-- 90題全熟記彈窗 -->
-<div id="modal-all-mastered" class="modal-overlay hidden">
-    <div class="modal-card">
-        <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🎖️</div>
-        <h2 style="font-size: 1.5rem; font-weight: 800; color: #b45309; margin-bottom: 0.5rem;">恭喜神功大成！</h2>
-        <p style="font-size: 0.95rem; color: #334155; line-height: 1.6; margin-bottom: 1.5rem;">
-            太強了!您已將 士官高級班第一階段通識課程 <strong>90 題</strong> 題庫完全背熟！<br>
-            預祝測驗旗開得勝、高分過關！
-        </p>
-        <button class="btn btn-warning" id="btn-close-mastered-modal" type="button">🏆 凱旋返回主頁</button>
     </div>
 </div>
 
@@ -630,7 +615,7 @@ const RAW_QUESTIONS = [
     { id: 64, diff: "mid", q: "何謂關鍵行動？", a: "綜合分析作戰之「特定行動」及「推斷行動」之必然性、重要性、時序性與限制因素等後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
     { id: 65, diff: "mid", q: "研擬行動方案步驟，除分析敵、我相對戰力及研擬各種行動方案選項外，還有那些？", a: "(1)初步規劃行動方案所需兵力及部署。(2)研擬行動方案作戰構想。(3)律定行動方案任務編組。(4)完成行動方案文字敘述及圖解標繪。" },
     { id: 66, diff: "mid", q: "戰場情報準備作業步驟為何？", a: "(1)界定戰場空間。(2)分析作戰地區。(3)評估敵軍威脅。(4)研判敵可能行動。" },
-    { id: 67, diff: "mid", q: "何謂接近路線？", a: "供某一適當大小與類型之部隊，用以通達地形要點或目標之一適切而便利之運動路線。" },
+    { id: 67, diff: "mid", q: "何謂接近路線？", a: "(1)供某一適當大小與類型之部隊，用以通達地形要點或目標之一適切而便利之運動路線。" },
     { id: 68, diff: "mid", q: "共軍合成旅包含哪些單位？", a: "旅部、4個合成營、偵查營、砲兵營、防空營、作戰支援營、勤務保障營共9個營級單位。" },
     { id: 69, diff: "mid", q: "在兵棋推演準備工作中，除準備各項推演工具列述我軍部隊及列舉假定事項外，還有那些步驟？", a: "(1)列舉已知重大事件及決心點。(2)決定評估要項。(3)選擇兵棋推演模式。(4)選擇記錄及公布結果方式。" },
     { id: 70, diff: "mid", q: "試問軍品整備範圍為何？", a: "各部隊列管之主（重）要武器裝備，包含戰甲砲車、火砲、輕、重兵器，輪型車輛（軍、民用、特種）、光學裝備、工兵裝備、通信裝備、化學裝備、軍醫裝備等。" },
@@ -653,19 +638,64 @@ const RAW_QUESTIONS = [
     { id: 87, diff: "hard", q: "請問陸軍司令部「連主檢資訊系統」連級權責為何？", a: "(1)運用系統回報每月連主檢新增裝備故障狀況。\n(2)運用系統掌握各類裝備保修工令及申補憑單。\n(3)運用系統調製每月「主要裝備狀況報告表」。\n(4)反映單位執行窒礙與研改建議。" },
     { id: 88, diff: "hard", q: "推行主檢系統後，連隊各項紙本表單，應如何存查？", a: "(1)保15－002表（原始檢查紀錄）一式一份，聯隊統一存查。\n(2)新增損壞項目報告表（主官批示）一式一份，連隊統一存查。\n(3)主要裝備狀況報告表（主官批示）一式一份，連隊統一存查。\n(4)保15－002表（系統產製）一式一份，裝備資料袋。\n(5)裝備申撥補狀態表，視需求列印，由系統線上查詢。" },
     { id: 89, diff: "hard", q: "推行主檢系統後，原欠撥憑單突然消失該如何處置？", a: "(1)詢問二級廠該項料件是否已經開撥？\n(2)詢問二級廠該筆憑單是否已經撤銷？\n(3)詢問二級廠是否為無效憑單？" },
-    { id: 90, diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "(1)建立戰場環境之全般概念。\n(2)確定「作戰地區」、「利害地區」之範圍。\n(3)確認作業詳盡之程度。\n(4)準備作業資料。" }
+    { id: 90, diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "(1)界定戰場空間之全般概念。\n(2)確定「作戰地區」、「利害地區」之範圍。\n(3)確認作業詳盡之程度。\n(4)準備作業資料。" }
 ];
 
 let masteredSet = new Set();
 let wrongStats = {};
 let cardLastPositions = {};
+let streakData = { days: 0, lastDate: "" };
 
 try {
     masteredSet = new Set(JSON.parse(localStorage.getItem('mastered_questions_nco_general') || '[]'));
     wrongStats = JSON.parse(localStorage.getItem('wrong_stats_nco_general') || '{}');
     cardLastPositions = JSON.parse(localStorage.getItem('card_last_positions_nco_general') || '{}');
+    streakData = JSON.parse(localStorage.getItem('study_streak_data_nco') || '{"days":0, "lastDate":""}');
 } catch (e) {
     localStorage.clear();
+}
+
+// 修正連續學習天數計算邏輯
+function updateStudyStreak() {
+    const todayStr = new Date().toISOString().slice(0, 10); // 格式 YYYY-MM-DD
+    if (streakData.lastDate === todayStr) {
+        // 今天已經算過
+        return;
+    }
+
+    if (!streakData.lastDate) {
+        // 第一次使用
+        streakData.days = 1;
+        streakData.lastDate = todayStr;
+    } else {
+        const lastDateObj = new Date(streakData.lastDate);
+        const todayObj = new Date(todayStr);
+        const diffTime = todayObj - lastDateObj;
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+            // 連續天數 + 1
+            streakData.days += 1;
+            streakData.lastDate = todayStr;
+        } else if (diffDays > 1) {
+            // 中斷超過一天，從 1 開始重新計算
+            streakData.days = 1;
+            streakData.lastDate = todayStr;
+        }
+        // diffDays === 0 的情況已由上面 todayStr 攔截
+    }
+
+    try {
+        localStorage.setItem('study_streak_data_nco', JSON.stringify(streakData));
+    } catch (e) {}
+}
+
+function renderStreakBadge() {
+    updateStudyStreak();
+    const badge = document.getElementById('study-streak-badge');
+    if (badge) {
+        badge.textContent = `🔥 連續學習 ${streakData.days || 1} 天`;
+    }
 }
 
 let quizList = [];
@@ -979,6 +1009,14 @@ function changeCardScope(scope) {
     renderCardContent();
 }
 
+// 重新開始功能：讓字卡直接回到最前面那題
+function restartFlashcards() {
+    cardIndex = 0;
+    cardLastPositions[currentCardScope] = 0;
+    localStorage.setItem('card_last_positions_nco_general', JSON.stringify(cardLastPositions));
+    renderCardContent();
+}
+
 function renderCardContent() {
     if (cardList.length === 0) return;
     const item = cardList[cardIndex];
@@ -1121,7 +1159,6 @@ function setupSwipeGestures() {
         const deltaX = currentX - startX;
         const deltaY = currentY - startY;
 
-        // 水平滑動時給予旋轉與透明度回饋
         const rotation = deltaX * 0.04;
         cardEl.style.transform = `translate(${deltaX}px, ${deltaY * 0.2}px) rotate(${rotation}deg)`;
         cardEl.style.opacity = Math.max(0.4, 1 - Math.abs(deltaX) / (window.innerWidth * 0.8));
@@ -1134,20 +1171,18 @@ function setupSwipeGestures() {
         const deltaY = currentY - startY;
         const dragDist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-        // 判定 1：若位移小於 10px 視為「點擊翻面」
         if (dragDist < 10) {
             springBack();
             flipCard();
             return;
         }
 
-        // 判定 2：若水平滑動超過 50px 且以水平為主，視為切換卡片
         if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
             if (deltaX < 0) {
-                nextCard(); // 向左滑 -> 下一張
+                nextCard();
             } else {
                 if (cardIndex > 0) {
-                    prevCard(); // 向右滑 -> 上一張
+                    prevCard();
                 } else {
                     springBack();
                 }
@@ -1163,7 +1198,6 @@ function setupSwipeGestures() {
         cardEl.style.opacity = '1';
     }
 
-    // 觸控事件
     cardEl.addEventListener('touchstart', (e) => {
         if (e.target.closest('button')) return;
         handleStart(e.touches[0].clientX, e.touches[0].clientY);
@@ -1176,7 +1210,6 @@ function setupSwipeGestures() {
 
     cardEl.addEventListener('touchend', handleEnd);
 
-    // 滑鼠事件
     cardEl.addEventListener('mousedown', (e) => {
         if (e.target.closest('button')) return;
         handleStart(e.clientX, e.clientY);
@@ -1251,6 +1284,7 @@ function toggleMasteredFromBank(qId, isChecked) {
 /* 🔗 事件綁定 */
 document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
+    renderStreakBadge();
     handleModeChange();
     setupSwipeGestures();
 
@@ -1275,6 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindClick('btn-card-flip', flipCard);
     bindClick('btn-card-next', nextCard);
     bindClick('btn-card-prev', prevCard);
+    bindClick('btn-card-restart', restartFlashcards);
     
     bindClick('srs-easy', () => { masteredSet.add(cardList[cardIndex].id); saveAllData(); nextCard(); });
     bindClick('srs-mid', nextCard);
