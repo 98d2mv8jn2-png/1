@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>115年士官高級班第一階段通識課程測驗系統</title>
+    <title>士官高級班第一階段通識課程測驗系統</title>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -306,7 +306,7 @@
             <button class="btn-text-sm" onclick="toggleDarkMode()">🌓 切換夜間護眼模式</button>
             <div style="font-size: 0.8rem; color: var(--text-muted);" id="study-streak-badge">🔥 連續學習 0 天</div>
         </div>
-        <h1>115年士官高級班第一階段通識課程題庫</h1>
+        <h1>士官高級班第一階段通識課程題庫</h1>
         
         <!-- 掌握度儀表板 -->
         <div class="dashboard-grid">
@@ -397,7 +397,7 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.25rem;">
             <button class="btn" onclick="startNewQuizClick()">✍️ 開始打字測驗</button>
-            <button class="btn btn-purple" onclick="openFlashcardSetup()">🎴 進入智慧字卡</button>
+            <button class="btn btn-purple" id="btn-open-flashcard" type="button">🎴 進入智慧字卡</button>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.85rem;">
@@ -870,9 +870,6 @@ function checkSmartMatch(userStr, stdStr) {
     }
     return (matchCount / cleanS.length >= 0.7) || (cleanS.includes(cleanU) && cleanU.length >= 2);
 }
-function computeDiff(std, user) {
-    return { standardHtml: `<span style="color:var(--success);">${std}</span>`, userHtml: `<span style="color:var(--danger);">${user}</span>` };
-}
 
 /* ========================================================
    ✍️ 打字測驗模組
@@ -1128,10 +1125,20 @@ function restartQuiz() {
 }
 
 /* ========================================================
-   🎴 智慧字卡背誦系統（滑動流暢不縮放閃爍）
+   🎴 智慧字卡背誦系統
    ======================================================== */
 let currentFrontText = "";
 let currentBackText = "";
+
+document.addEventListener('DOMContentLoaded', () => {
+    const flashcardBtn = document.getElementById('btn-open-flashcard');
+    if (flashcardBtn) {
+        flashcardBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openFlashcardSetup();
+        });
+    }
+});
 
 function openFlashcardSetup() {
     document.getElementById('view-setup').classList.add('hidden');
@@ -1140,7 +1147,8 @@ function openFlashcardSetup() {
     document.getElementById('view-result').classList.add('hidden');
     document.getElementById('view-flashcard').classList.remove('hidden');
     
-    const scope = document.getElementById('select-card-scope').value || 'unmastered';
+    const scopeSelect = document.getElementById('select-card-scope');
+    const scope = scopeSelect ? scopeSelect.value : 'unmastered';
     changeCardScope(scope);
 }
 
@@ -1236,7 +1244,6 @@ function rateCard(level) {
     nextCard();
 }
 
-// 💡 修正後的光滑滑動動畫，消除尺寸縮放閃爍
 function animateSlideTo(direction, onComplete) {
     const card = document.getElementById('flashcard-card');
     const destX = (direction === 'left') ? -window.innerWidth * 1.2 : window.innerWidth * 1.2;
@@ -1337,7 +1344,7 @@ function speakText(text) {
 }
 
 /* ========================================================
-   👆 真實物理跟手拖曳滑動
+   👆 修正後的真實物理拖曳與靈敏點擊翻面
    ======================================================== */
 const cardEl = document.getElementById('flashcard-card');
 let isDragging = false;
@@ -1345,11 +1352,11 @@ let startX = 0;
 let startY = 0;
 let currentX = 0;
 let currentY = 0;
-let isMovedSignificantly = false;
+let dragDistance = 0;
 
 function onDragStart(clientX, clientY) {
     isDragging = true;
-    isMovedSignificantly = false;
+    dragDistance = 0;
     startX = clientX;
     startY = clientY;
     currentX = clientX;
@@ -1364,9 +1371,7 @@ function onDragMove(clientX, clientY) {
     const deltaX = currentX - startX;
     const deltaY = currentY - startY;
 
-    if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
-        isMovedSignificantly = true;
-    }
+    dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
     const rotation = deltaX * 0.05;
     cardEl.style.transform = `translate(${deltaX}px, ${deltaY * 0.25}px) rotate(${rotation}deg)`;
@@ -1378,6 +1383,13 @@ function onDragEnd() {
     isDragging = false;
     const deltaX = currentX - startX;
     const deltaY = currentY - startY;
+
+    // 移動距離極小視為「點擊翻面」
+    if (dragDistance < 10) {
+        springBack();
+        flipCard();
+        return;
+    }
 
     if (Math.abs(deltaX) > 75 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
         suppressClickUntil = Date.now() + 350;
@@ -1397,11 +1409,7 @@ function onDragEnd() {
             }
         }
     } else {
-        if (!isMovedSignificantly) {
-            flipCard();
-        } else {
-            springBack();
-        }
+        springBack();
     }
 }
 
