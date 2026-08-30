@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>年士官高級班第一階段通識課程測驗系統</title>
+    <title>115年士官高級班第一階段通識課程測驗系統</title>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -195,6 +195,7 @@
             height: 340px;
             margin: 0.5rem 0 1rem 0;
             perspective: 1200px;
+            touch-action: pan-y;
         }
         .flashcard {
             width: 100%;
@@ -203,10 +204,11 @@
             transform-style: preserve-3d;
             border-radius: 16px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            cursor: pointer;
+            cursor: grab;
             will-change: transform, opacity;
             transform-origin: center center;
         }
+        .flashcard:active { cursor: grabbing; }
         .flashcard-inner {
             width: 100%;
             height: 100%;
@@ -214,6 +216,7 @@
             transform-style: preserve-3d;
             transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             border-radius: 16px;
+            pointer-events: none;
         }
         .flashcard-inner.is-flipped { transform: rotateY(180deg); }
         .flashcard-face {
@@ -230,13 +233,14 @@
             box-sizing: border-box;
             border: 2px solid var(--border);
             background-color: var(--card-bg);
+            pointer-events: auto;
         }
         .flashcard-front { border-color: #93c5fd; }
         .flashcard-back { transform: rotateY(180deg); border-color: #86efac; background-color: var(--primary-light); }
         .flashcard-side-label { font-size: 0.8rem; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
         .flashcard-body {
             flex-grow: 1; display: flex; align-items: center; justify-content: center; text-align: left;
-            font-size: 1.05rem; line-height: 1.65; font-weight: 600; overflow-y: auto; padding: 0.5rem 0; word-break: break-word; user-select: text; -webkit-user-select: text;
+            font-size: 1.05rem; line-height: 1.65; font-weight: 600; overflow-y: auto; padding: 0.5rem 0; word-break: break-word; user-select: none; -webkit-user-select: none;
         }
         .flashcard-hint { font-size: 0.78rem; color: var(--text-muted); text-align: center; user-select: none; }
 
@@ -298,7 +302,7 @@
             <button class="btn-text-sm" onclick="toggleDarkMode()">🌓 切換夜間護眼模式</button>
             <div style="font-size: 0.8rem; color: var(--text-muted);" id="study-streak-badge">🔥 連續學習 0 天</div>
         </div>
-        <h1>年士官高級班第一階段通識課程題庫</h1>
+        <h1>115年士官高級班第一階段通識課程題庫</h1>
         
         <!-- 掌握度儀表板 -->
         <div class="dashboard-grid">
@@ -467,7 +471,7 @@
             </div>
         </div>
 
-        <div class="card-stage">
+        <div class="card-stage" id="card-stage-box">
             <div class="flashcard" id="flashcard-card">
                 <div class="flashcard-inner" id="flashcard-inner">
                     <div class="flashcard-face flashcard-front">
@@ -551,7 +555,7 @@
         <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🎖️</div>
         <h2 style="font-size: 1.5rem; font-weight: 800; color: #b45309; margin-bottom: 0.5rem;">恭喜神功大成！</h2>
         <p style="font-size: 0.95rem; color: #334155; line-height: 1.6; margin-bottom: 1.5rem;">
-            太強了!您已將士官高級班第一階段通識課程 <strong>90 題</strong> 題庫完全背熟！<br>
+            太強了!您已將 115 年士官高級班第一階段通識課程 <strong>90 題</strong> 題庫完全背熟！<br>
             預祝測驗旗開得勝、高分過關！
         </p>
         <button class="btn btn-warning" id="btn-close-mastered-modal" type="button">🏆 凱旋返回主頁</button>
@@ -983,6 +987,13 @@ function renderCardContent() {
     cardLastPositions[currentCardScope] = cardIndex;
     localStorage.setItem('card_last_positions_nco_general', JSON.stringify(cardLastPositions));
 
+    const card = document.getElementById('flashcard-card');
+    if (card) {
+        card.style.transition = 'none';
+        card.style.transform = 'translate(0px, 0px) rotate(0deg)';
+        card.style.opacity = '1';
+    }
+
     const inner = document.getElementById('flashcard-inner');
     if (inner) inner.classList.remove('is-flipped');
     const srs = document.getElementById('srs-box');
@@ -1014,6 +1025,9 @@ function renderCardContent() {
 
     const chk = document.getElementById('chk-card-mastered');
     if (chk) chk.checked = masteredSet.has(item.id);
+    
+    const prevBtn = document.getElementById('btn-card-prev');
+    if (prevBtn) prevBtn.disabled = (cardIndex === 0);
 }
 
 function flipCard() {
@@ -1029,10 +1043,36 @@ function flipCard() {
     }
 }
 
+function animateSlideTo(direction, onComplete) {
+    const card = document.getElementById('flashcard-card');
+    if (!card) { onComplete(); return; }
+    const destX = (direction === 'left') ? -window.innerWidth * 1.1 : window.innerWidth * 1.1;
+    
+    card.style.transition = 'transform 0.22s ease-out, opacity 0.2s ease-out';
+    card.style.transform = `translate(${destX}px, 0px) rotate(${direction === 'left' ? -8 : 8}deg)`;
+    card.style.opacity = '0';
+
+    setTimeout(() => {
+        onComplete();
+        const startX = (direction === 'left') ? window.innerWidth * 0.7 : -window.innerWidth * 0.7;
+        card.style.transition = 'none';
+        card.style.transform = `translate(${startX}px, 0px) rotate(${direction === 'left' ? 6 : -6}deg)`;
+        card.style.opacity = '0';
+
+        requestAnimationFrame(() => {
+            card.style.transition = 'transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.2), opacity 0.2s ease-out';
+            card.style.transform = 'translate(0px, 0px) rotate(0deg)';
+            card.style.opacity = '1';
+        });
+    }, 200);
+}
+
 function nextCard() {
     if (cardIndex < cardList.length - 1) {
-        cardIndex++;
-        renderCardContent();
+        animateSlideTo('left', () => {
+            cardIndex++;
+            renderCardContent();
+        });
     } else {
         alert("🎉 本題庫字卡已全部背誦完畢！");
         exitFlashcards();
@@ -1041,8 +1081,10 @@ function nextCard() {
 
 function prevCard() {
     if (cardIndex > 0) {
-        cardIndex--;
-        renderCardContent();
+        animateSlideTo('right', () => {
+            cardIndex--;
+            renderCardContent();
+        });
     }
 }
 
@@ -1050,6 +1092,103 @@ function exitFlashcards() {
     document.getElementById('view-flashcard').classList.add('hidden');
     document.getElementById('view-setup').classList.remove('hidden');
     renderDashboard();
+}
+
+/* 👆 左右物理滑動手勢監聽 */
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+let currentX = 0;
+let currentY = 0;
+
+function setupSwipeGestures() {
+    const cardEl = document.getElementById('flashcard-card');
+    if (!cardEl) return;
+
+    function handleStart(x, y) {
+        isDragging = true;
+        startX = x;
+        startY = y;
+        currentX = x;
+        currentY = y;
+        cardEl.style.transition = 'none';
+    }
+
+    function handleMove(x, y) {
+        if (!isDragging) return;
+        currentX = x;
+        currentY = y;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+
+        // 水平滑動時給予旋轉與透明度回饋
+        const rotation = deltaX * 0.04;
+        cardEl.style.transform = `translate(${deltaX}px, ${deltaY * 0.2}px) rotate(${rotation}deg)`;
+        cardEl.style.opacity = Math.max(0.4, 1 - Math.abs(deltaX) / (window.innerWidth * 0.8));
+    }
+
+    function handleEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+        const dragDist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // 判定 1：若位移小於 10px 視為「點擊翻面」
+        if (dragDist < 10) {
+            springBack();
+            flipCard();
+            return;
+        }
+
+        // 判定 2：若水平滑動超過 50px 且以水平為主，視為切換卡片
+        if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+            if (deltaX < 0) {
+                nextCard(); // 向左滑 -> 下一張
+            } else {
+                if (cardIndex > 0) {
+                    prevCard(); // 向右滑 -> 上一張
+                } else {
+                    springBack();
+                }
+            }
+        } else {
+            springBack();
+        }
+    }
+
+    function springBack() {
+        cardEl.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.2s ease';
+        cardEl.style.transform = 'translate(0px, 0px) rotate(0deg)';
+        cardEl.style.opacity = '1';
+    }
+
+    // 觸控事件
+    cardEl.addEventListener('touchstart', (e) => {
+        if (e.target.closest('button')) return;
+        handleStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    cardEl.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    cardEl.addEventListener('touchend', handleEnd);
+
+    // 滑鼠事件
+    cardEl.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button')) return;
+        handleStart(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) handleMove(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDragging) handleEnd();
+    });
 }
 
 /* 📖 總題庫瀏覽 */
@@ -1109,10 +1248,11 @@ function toggleMasteredFromBank(qId, isChecked) {
     renderMasteredList();
 }
 
-/* 🔗 事件全面安全綁定 (確保不漏掉任何點擊) */
+/* 🔗 事件綁定 */
 document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
     handleModeChange();
+    setupSwipeGestures();
 
     const bindClick = (id, fn) => {
         const el = document.getElementById(id);
@@ -1132,7 +1272,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('view-setup').classList.remove('hidden');
     });
     bindClick('btn-exit-flashcard', exitFlashcards);
-    bindClick('flashcard-card', flipCard);
     bindClick('btn-card-flip', flipCard);
     bindClick('btn-card-next', nextCard);
     bindClick('btn-card-prev', prevCard);
