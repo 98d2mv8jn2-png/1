@@ -2,20 +2,37 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>士官高級班通識課程測驗系統</title>
     <style>
         :root {
             --primary: #1e3a8a;
             --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
             --success: #15803d;
             --danger: #b91c1c;
             --warning: #d97706;
+            --purple: #6366f1;
+            --purple-hover: #4f46e5;
             --bg: #f8fafc;
             --card-bg: #ffffff;
             --text: #0f172a;
             --text-muted: #64748b;
             --border: #cbd5e1;
+        }
+        body.dark-mode {
+            --primary: #60a5fa;
+            --primary-hover: #93c5fd;
+            --primary-light: #1e293b;
+            --success: #4ade80;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --purple: #a78bfa;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -27,16 +44,23 @@
             align-items: center;
             min-height: 100vh;
             padding: 1rem;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background-color 0.3s, color 0.3s;
         }
         .container {
             background-color: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            border-radius: 14px;
+            box-shadow: 0 4px 15px -1px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 680px;
+            max-width: 720px;
             padding: 2rem;
+            position: relative;
+            border: 1px solid var(--border);
+            transition: background-color 0.3s, border-color 0.3s;
         }
-        h1 { font-size: 1.35rem; color: var(--primary); margin-bottom: 1.5rem; text-align: center; }
+        h1 { font-size: 1.35rem; color: var(--primary); margin-bottom: 1rem; text-align: center; }
+        
         .setup-group { margin-bottom: 1.25rem; }
         label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem; }
         select, input[type="number"], textarea {
@@ -46,298 +70,146 @@
             border-radius: 6px;
             font-size: 1rem;
             outline: none;
-            background-color: #fff;
-            transition: border-color 0.2s;
+            background-color: var(--card-bg);
+            color: var(--text);
+            user-select: text;
+            -webkit-user-select: text;
         }
         select:focus, input[type="number"]:focus, textarea:focus { border-color: var(--primary); }
         textarea { resize: vertical; min-height: 120px; font-family: inherit; }
-        .grid-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 0.75rem;
-            margin-top: 0.5rem;
-        }
-        .grid-item label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; }
-        .range-inputs {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
+        .range-inputs { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
         .range-inputs input { width: 50%; }
-        .total-hint {
-            font-size: 0.9rem;
-            color: var(--primary);
-            font-weight: 600;
-            margin-top: 0.5rem;
-            text-align: right;
-        }
+        
         .btn {
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            padding: 0.75rem 1.5rem;
-            background-color: var(--primary);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
+            display: inline-flex; justify-content: center; align-items: center; width: 100%;
+            padding: 0.75rem 1.5rem; background-color: var(--primary); color: #fff;
+            border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s;
         }
         .btn:hover { background-color: var(--primary-hover); }
         .btn:disabled { background-color: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
-        .btn-warning { background-color: var(--warning); }
-        .btn-warning:hover { background-color: #b45309; }
-        .btn-secondary { background-color: #64748b; }
-        .btn-secondary:hover { background-color: #475569; }
-        .btn-success { background-color: var(--success); }
-        .btn-success:hover { background-color: #166534; }
-        .btn-skip {
-            background-color: #f1f5f9;
-            color: #334155;
-            border: 1px solid var(--border);
-        }
+        .btn-warning { background-color: var(--warning); color: #fff; }
+        .btn-secondary { background-color: #64748b; color: #fff; }
+        .btn-success { background-color: var(--success); color: #fff; }
+        .btn-purple { background-color: var(--purple); color: #fff; }
+        .btn-danger { background-color: var(--danger); color: #fff; }
+        .btn-skip { background-color: #f1f5f9; color: #334155; border: 1px solid var(--border); }
         .btn-skip:hover { background-color: #e2e8f0; color: #0f172a; }
         .btn-group { display: flex; flex-direction: column; gap: 0.75rem; }
         .quiz-btn-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
+        
         .status-badge {
-            display: inline-block;
-            padding: 0.25rem 0.6rem;
-            background-color: #dbeafe;
-            color: var(--primary);
-            font-size: 0.9rem;
-            font-weight: 600;
-            border-radius: 4px;
+            display: inline-block; padding: 0.25rem 0.6rem; background-color: var(--primary-light);
+            color: var(--primary); font-size: 0.9rem; font-weight: 600; border-radius: 4px;
         }
-        .quiz-topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .quiz-topbar-right {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .mastered-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            cursor: pointer;
-            user-select: none;
-        }
+        .quiz-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+        .quiz-topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+        
+        .mastered-toggle { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; color: var(--text-muted); cursor: pointer; user-select: none; }
         .mastered-toggle input { cursor: pointer; width: 16px; height: 16px; }
+        
         .mastered-info-badge {
-            background-color: #e0f2fe;
-            color: #0369a1;
-            padding: 0.5rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            margin-bottom: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            background-color: var(--primary-light); color: var(--primary); padding: 0.5rem 0.75rem;
+            border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; border: 1px solid var(--border);
         }
-        .mastered-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .btn-text-sm {
-            background: none;
-            border: none;
-            color: #0284c7;
-            text-decoration: underline;
-            cursor: pointer;
-            font-size: 0.8rem;
-            padding: 0;
-        }
-        .btn-text-sm:hover { color: #0369a1; }
-        .btn-text-danger { color: #dc2626; }
-        .btn-text-danger:hover { color: #991b1b; }
+        .mastered-actions { display: flex; align-items: center; gap: 0.75rem; }
+        .btn-text-sm { background: none; border: none; color: #0284c7; text-decoration: underline; cursor: pointer; font-size: 0.8rem; padding: 0; font-weight: 600; }
+        .btn-text-danger { color: var(--danger); }
         
         .pause-banner {
-            background-color: #fef3c7;
-            border: 1px solid #fde68a;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
+            background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 1rem;
+            margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; color: #78350f;
         }
-        .pause-title {
-            font-weight: bold;
-            color: #92400e;
-            font-size: 0.95rem;
-        }
-        .pause-desc {
-            font-size: 0.85rem;
-            color: #78350f;
-        }
-        .pause-btns {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.25rem;
-        }
+        .pause-title { font-weight: bold; font-size: 0.95rem; }
+        .pause-desc { font-size: 0.85rem; }
+        .pause-btns { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
 
         .question-box { font-size: 1.15rem; font-weight: 600; margin-bottom: 1.25rem; line-height: 1.6; }
         .feedback { margin-top: 1.25rem; padding: 1rem; border-radius: 6px; }
         .feedback.correct { background-color: #dcfce7; border: 1px solid #bbf7d0; color: var(--success); }
         .feedback.wrong { background-color: #fee2e2; border: 1px solid #fecaca; color: var(--danger); }
         .feedback-title { font-weight: bold; font-size: 1.05rem; margin-bottom: 0.5rem; }
-        .diff-view { background: #fff; border: 1px solid var(--border); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.6; color: var(--text); word-break: break-all; }
+        .diff-view { background: var(--card-bg); border: 1px solid var(--border); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.6; word-break: break-all; }
         .diff-del { background-color: #fecaca; color: #991b1b; text-decoration: line-through; padding: 0 2px; }
         .diff-ins { background-color: #fed7aa; color: #9a3412; font-weight: bold; padding: 0 2px; }
-        .stat-card { background-color: #f1f5f9; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: center; }
+        .stat-card { background-color: var(--primary-light); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: center; border: 1px solid var(--border); }
         .stat-rate { font-size: 2rem; font-weight: bold; color: var(--primary); margin: 0.5rem 0; }
         
-        .filter-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
+        /* 🎴 3D 翻轉字卡樣式 */
+        .card-stage {
+            position: relative; width: 100%; height: 340px; margin: 0.5rem 0 1rem 0; perspective: 1200px;
         }
-        .filter-tab {
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: #fff;
-            font-size: 0.85rem;
-            cursor: pointer;
-            color: var(--text-muted);
-            font-weight: 600;
+        .flashcard {
+            width: 100%; height: 100%; position: relative; transform-style: preserve-3d; border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: grab; will-change: transform, opacity;
         }
-        .filter-tab.active {
-            background-color: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
+        .flashcard:active { cursor: grabbing; }
+        .flashcard-inner {
+            width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius: 16px;
         }
-        .mastered-list {
-            max-height: 60vh;
-            overflow-y: auto;
-            margin: 0.5rem 0 1rem 0;
-            padding-right: 0.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+        .flashcard-inner.is-flipped { transform: rotateY(180deg); }
+        .flashcard-face {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+            border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; border: 2px solid var(--border); background-color: var(--card-bg);
         }
-        .mastered-item-card {
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            background: #fff;
-            transition: border-color 0.2s;
+        .flashcard-front { border-color: #93c5fd; }
+        .flashcard-back { transform: rotateY(180deg); border-color: #86efac; background-color: var(--primary-light); }
+        .flashcard-side-label { font-size: 0.8rem; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+        .flashcard-body {
+            flex-grow: 1; display: flex; align-items: center; justify-content: center; text-align: left;
+            font-size: 1.05rem; line-height: 1.65; font-weight: 600; overflow-y: auto; padding: 0.5rem 0; word-break: break-word; user-select: text; -webkit-user-select: text;
         }
-        .mastered-item-card.is-mastered {
-            border-color: #93c5fd;
-            background-color: #f8fafc;
+        .flashcard-hint { font-size: 0.78rem; color: var(--text-muted); text-align: center; user-select: none; }
+
+        .ergonomic-bar {
+            display: flex; align-items: center; justify-content: space-between; background: var(--card-bg);
+            border: 1.5px solid var(--border); padding: 0.45rem 0.6rem; border-radius: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); margin-top: 0.35rem;
         }
-        .mastered-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
+        .ergo-btn-circle {
+            width: 46px; height: 46px; border-radius: 50%; border: none; background: var(--primary-light); color: var(--text);
+            display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
         }
-        .diff-tag {
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
+        .ergo-btn-circle:active { transform: scale(0.9); }
+        .ergo-btn-circle:hover { background: var(--border); }
+        .ergo-btn-circle:disabled { opacity: 0.4; cursor: not-allowed; }
+        .ergo-btn-center {
+            flex-grow: 1; margin: 0 0.5rem; height: 46px; border-radius: 25px; border: none;
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: #fff; font-size: 0.95rem; font-weight: 700;
+            display: flex; justify-content: center; align-items: center; gap: 0.35rem; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
         }
+        .ergo-btn-autoplay {
+            height: 46px; padding: 0 0.9rem; border-radius: 25px; border: 1.5px solid var(--border); background: var(--card-bg);
+            color: var(--text-muted); font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem; cursor: pointer; flex-shrink: 0;
+        }
+        .ergo-btn-autoplay.active { background: #fef3c7; border-color: #f59e0b; color: #b45309; }
+
+        .diff-tag { font-size: 0.75rem; padding: 2px 7px; border-radius: 6px; font-weight: 700; }
         .diff-tag-easy { background-color: #dcfce7; color: #166534; }
         .diff-tag-mid { background-color: #fef3c7; color: #92400e; }
         .diff-tag-hard { background-color: #fee2e2; color: #991b1b; }
-        .mastered-item-q {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text);
-            line-height: 1.5;
-        }
-        .mastered-item-a {
-            font-size: 0.95rem;
-            color: #334155;
-            background-color: #f8fafc;
-            padding: 0.6rem;
-            border-radius: 4px;
-            line-height: 1.5;
-            border-left: 3px solid var(--primary);
-        }
-        .empty-state {
-            text-align: center;
-            padding: 2.5rem 1rem;
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
         
-        /* 90題全熟記彈窗樣式 */
+        .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+        .filter-tab {
+            padding: 0.4rem 0.8rem; border-radius: 20px; border: 1px solid var(--border); background: var(--card-bg);
+            font-size: 0.85rem; cursor: pointer; color: var(--text-muted); font-weight: 600;
+        }
+        .filter-tab.active { background-color: var(--primary); color: #fff; border-color: var(--primary); }
+        .mastered-list { max-height: 60vh; overflow-y: auto; margin: 0.5rem 0 1rem 0; padding-right: 0.25rem; display: flex; flex-direction: column; gap: 1rem; }
+        .mastered-item-card { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; background: var(--card-bg); }
+        .mastered-item-card.is-mastered { border-color: #93c5fd; background-color: var(--primary-light); }
+        .mastered-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .mastered-item-q { font-weight: 600; margin-bottom: 0.5rem; color: var(--text); line-height: 1.5; }
+        .mastered-item-a { font-size: 0.95rem; color: var(--text); background-color: var(--primary-light); padding: 0.6rem; border-radius: 4px; line-height: 1.5; border-left: 3px solid var(--primary); }
+        .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.95rem; }
+        
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(4px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            padding: 1.5rem;
-            animation: fadeIn 0.3s ease;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1.5rem;
         }
-        .modal-card {
-            background: #ffffff;
-            border-radius: 16px;
-            max-width: 480px;
-            width: 100%;
-            padding: 2.5rem 2rem;
-            text-align: center;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-            animation: popUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .modal-icon {
-            font-size: 4rem;
-            line-height: 1;
-            margin-bottom: 1rem;
-            animation: bounce 1.2s infinite alternate ease-in-out;
-        }
-        .modal-title {
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: #b45309;
-            margin-bottom: 0.75rem;
-            letter-spacing: 1px;
-        }
-        .modal-desc {
-            font-size: 1.05rem;
-            color: #334155;
-            line-height: 1.6;
-            margin-bottom: 1.75rem;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes popUp {
-            from { transform: scale(0.85); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes bounce {
-            from { transform: translateY(0px) scale(1); }
-            to { transform: translateY(-8px) scale(1.08); }
-        }
-
+        .modal-card { background: var(--card-bg); border-radius: 16px; max-width: 480px; width: 100%; padding: 2.5rem 2rem; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); color: var(--text); }
+        .modal-icon { font-size: 4rem; line-height: 1; margin-bottom: 1rem; }
+        .modal-title { font-size: 1.75rem; font-weight: 800; color: #b45309; margin-bottom: 0.75rem; }
+        .modal-desc { font-size: 1.05rem; color: var(--text); line-height: 1.6; margin-bottom: 1.75rem; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -346,10 +218,14 @@
 <div class="container">
     <!-- 設定畫面（主頁） -->
     <div id="view-setup">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <button class="btn-text-sm" onclick="toggleDarkMode()">🌓 切換夜間護眼模式</button>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="study-streak-badge">🔥 連續學習 0 天</div>
+        </div>
         <h1>士官高級班通識課程測驗系統</h1>
         
         <div class="mastered-info-badge" id="mastered-badge">
-            <span id="mastered-stat-text">已標記熟記：0 題 / 共 90 題</span>
+            <span id="mastered-stat-text">已標記熟記：0 題 / 共 100 題</span>
             <div class="mastered-actions">
                 <button class="btn-text-sm" onclick="showMasteredList()">瀏覽總題庫 / 勾選熟記</button>
                 <button class="btn-text-sm btn-text-danger" onclick="resetMastered()">清空熟記</button>
@@ -359,7 +235,7 @@
         <!-- 暫停進行中測驗的提示面板 -->
         <div id="panel-paused-quiz" class="pause-banner hidden">
             <div class="pause-title">📌 偵測到有尚未完成的測驗進度</div>
-            <div class="pause-desc" id="pause-status-desc">目前進度：第 1 題 / 共 30 題</div>
+            <div class="pause-desc" id="pause-status-desc">目前進度：第 1 題 / 共 50 題</div>
             <div class="pause-btns">
                 <button class="btn btn-success" onclick="resumeQuiz()" style="font-size: 0.9rem; padding: 0.5rem 1rem;">▶️ 繼續未完成測驗</button>
                 <button class="btn btn-secondary" onclick="discardQuiz()" style="font-size: 0.9rem; padding: 0.5rem 1rem; background-color: #94a3b8;">放棄進度</button>
@@ -377,56 +253,49 @@
         <div class="setup-group">
             <label for="select-mode">測驗模式：</label>
             <select id="select-mode" onchange="handleModeChange()">
-                <option value="ratio" selected>依難易度配題（含熟記題，出現可跳過）</option>
-                <option value="all">全題庫隨機抽取（直接跳過已熟記題）</option>
-                <option value="custom">自訂指定範圍（直接跳過已熟記題）</option>
+                <option value="preset-1-50" selected>第 01 - 50 題（含熟記題，出現可跳過）</option>
+                <option value="preset-51-100">第 51 - 100 題（含熟記題，出現可跳過）</option>
+                <option value="random-all">全題庫隨機抽取（直接跳過已熟記題）</option>
+                <option value="custom-range">自訂指定範圍（直接跳過已熟記題）</option>
             </select>
         </div>
 
-        <!-- 難易度自訂配題面板 -->
-        <div id="panel-ratio" class="setup-group">
-            <label>設定各難度題數（預設 15 / 10 / 5）：</label>
-            <div class="grid-inputs">
-                <div class="grid-item">
-                    <label for="input-easy">易（上限 36）</label>
-                    <input type="number" id="input-easy" min="0" max="36" value="15" oninput="updateTotalCount()">
-                </div>
-                <div class="grid-item">
-                    <label for="input-mid">中（上限 36）</label>
-                    <input type="number" id="input-mid" min="0" max="36" value="10" oninput="updateTotalCount()">
-                </div>
-                <div class="grid-item">
-                    <label for="input-hard">難（上限 18）</label>
-                    <input type="number" id="input-hard" min="0" max="18" value="5" oninput="updateTotalCount()">
-                </div>
-            </div>
-            <div class="total-hint" id="ratio-total-hint">本次預計測驗：30 題</div>
-        </div>
-
         <!-- 全題庫隨機抽取面板 -->
-        <div id="panel-count" class="setup-group hidden">
-            <label for="input-count" id="label-count">本次測驗題數（排除已熟記後共 90 題）：</label>
-            <input type="number" id="input-count" min="1" max="90" value="30">
+        <div id="panel-random" class="setup-group hidden">
+            <label for="input-count" id="label-count">本次隨機抽取題數（排除已熟記後共 100 題）：</label>
+            <input type="number" id="input-count" min="1" max="100" value="30">
         </div>
 
         <!-- 自訂題號區間面板 -->
         <div id="panel-custom" class="setup-group hidden">
-            <label>指定題庫索引區間（將直接跳過區間內的已熟記題）：</label>
+            <label>指定題庫索引區間（題號 1 ~ 100，將直接跳過已熟記題）：</label>
             <div class="range-inputs">
-                <input type="number" id="custom-start" min="1" max="90" value="1" placeholder="起始題號">
+                <input type="number" id="custom-start" min="1" max="100" value="1" placeholder="起始題號">
                 <span>至</span>
-                <input type="number" id="custom-end" min="1" max="90" value="90" placeholder="結束題號">
+                <input type="number" id="custom-end" min="1" max="100" value="100" placeholder="結束題號">
             </div>
         </div>
 
-        <button class="btn" onclick="startNewQuizClick()" style="margin-top: 1rem;">開始測驗</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.25rem;">
+            <button class="btn" onclick="startNewQuizClick()">✍️ 開始打字測驗</button>
+            <button class="btn btn-purple" onclick="openFlashcardSetup()">🎴 進入智慧字卡</button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.85rem;">
+            <button class="btn-text-sm" onclick="showMasteredList()">📖 總題庫瀏覽 / 列印</button>
+            <div>
+                <button class="btn-text-sm" onclick="showBackupModal()">💾 進度備份</button>
+                <span style="color: var(--border); margin: 0 4px;">|</span>
+                <button class="btn-text-sm" style="color: var(--danger);" onclick="resetAllData()">⚠️ 清空資料</button>
+            </div>
+        </div>
     </div>
 
     <!-- 查看總題庫與管理畫面 -->
     <div id="view-mastered" class="hidden">
         <h1>總題庫瀏覽與熟記管理</h1>
         <div class="filter-tabs">
-            <button class="filter-tab active" id="tab-all" onclick="switchBankFilter('all')">全部 (90)</button>
+            <button class="filter-tab active" id="tab-all" onclick="switchBankFilter('all')">全部 (100)</button>
             <button class="filter-tab" id="tab-unmastered" onclick="switchBankFilter('unmastered')">僅未熟記</button>
             <button class="filter-tab" id="tab-mastered" onclick="switchBankFilter('mastered')">僅已熟記</button>
         </div>
@@ -437,13 +306,13 @@
     <!-- 答題畫面 -->
     <div id="view-quiz" class="hidden">
         <div class="quiz-topbar">
-            <div class="status-badge" id="quiz-progress">第 1 題 / 共 30 題</div>
+            <div class="status-badge" id="quiz-progress">第 1 題 / 共 50 題</div>
             <div class="quiz-topbar-right">
                 <label class="mastered-toggle">
                     <input type="checkbox" id="chk-mastered" onchange="toggleMastered(this.checked)">
                     <span>這題我已背熟</span>
                 </label>
-                <button class="btn-text-sm" onclick="pauseAndGoHome()" style="font-weight: 600; color: #475569;">⏸️ 暫停回主頁</button>
+                <button class="btn-text-sm" onclick="pauseAndGoHome()" style="font-weight: 600; color: var(--text-muted);">⏸️ 暫停回主頁</button>
             </div>
         </div>
         
@@ -460,13 +329,91 @@
         <div id="quiz-feedback" class="feedback hidden"></div>
     </div>
 
+    <!-- 🎴 智慧字卡背誦畫面（完整記憶上次進度 + 正反對調 + SRS + 題號排序） -->
+    <div id="view-flashcard" class="hidden">
+        <div class="quiz-topbar">
+            <!-- 🎴 字卡專屬題庫範圍下拉選單 -->
+            <select id="select-card-scope" onchange="changeCardScope(this.value)" style="width:auto; padding:0.3rem 0.6rem; font-size:0.85rem; font-weight:700; border-radius:20px; border-color:#c7d2fe; background:var(--primary-light); color:var(--primary); outline:none; cursor:pointer;">
+                <option value="unmastered" selected>📚 僅未熟記題庫</option>
+                <option value="all">🌐 全部總題庫 (100題)</option>
+                <option value="part1">📌 第 01 - 50 題</option>
+                <option value="part2">📌 第 51 - 100 題</option>
+            </select>
+            
+            <div class="quiz-topbar-right">
+                <label class="mastered-toggle" title="正反題面互換訓練">
+                    <input type="checkbox" id="chk-reverse" onchange="toggleReverseMode(this.checked)">
+                    <span>🔄 反向</span>
+                </label>
+                <label class="mastered-toggle" title="已熟記標記">
+                    <input type="checkbox" id="chk-card-mastered" onchange="toggleCardMastered(this.checked)">
+                    <span>熟記</span>
+                </label>
+                <button class="btn-text-sm" onclick="exitFlashcards()" style="font-weight:700; color:var(--text-muted);">🏠 主頁</button>
+            </div>
+        </div>
+
+        <!-- 3D 物理翻轉舞台 -->
+        <div class="card-stage">
+            <div class="flashcard" id="flashcard-card">
+                <div class="flashcard-inner" id="flashcard-inner">
+                    <!-- 正面 -->
+                    <div class="flashcard-face flashcard-front">
+                        <div class="flashcard-side-label">
+                            <span id="card-progress">📝 題目 (1/100)</span>
+                            <div style="display:flex; gap:0.4rem; align-items:center;">
+                                <button class="btn-text-sm" onclick="event.stopPropagation(); speakText(currentFrontText);" title="語音朗讀">🔊 朗讀</button>
+                                <span id="card-diff-tag" class="diff-tag diff-tag-easy">準則</span>
+                            </div>
+                        </div>
+                        <div class="flashcard-body" id="card-front-body"></div>
+                        <div class="flashcard-hint">👆 點擊翻面 ｜ 👈 左右滑動切換 👉</div>
+                    </div>
+                    <!-- 背面 -->
+                    <div class="flashcard-face flashcard-back">
+                        <div class="flashcard-side-label">
+                            <span id="card-back-title">💡 標準答案</span>
+                            <button class="btn-text-sm" onclick="event.stopPropagation(); speakText(currentBackText);" style="color:var(--success);" title="語音朗讀">🔊 朗讀</button>
+                        </div>
+                        <div class="flashcard-body" id="card-back-body" style="font-weight:500;"></div>
+                        <div class="flashcard-hint">👆 點擊翻回正面 ｜ 👈 左右滑動切換 👉</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🧠 SRS 間距重複自我評估按鈕 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;" id="srs-box" class="hidden">
+            <button class="btn btn-danger" style="padding:0.5rem; font-size:0.85rem;" onclick="rateCard('hard')">🔴 不會 (重來)</button>
+            <button class="btn btn-warning" style="padding:0.5rem; font-size:0.85rem;" onclick="rateCard('mid')">🟡 模糊</button>
+            <button class="btn btn-success" style="padding:0.5rem; font-size:0.85rem;" onclick="rateCard('easy')">🟢 輕鬆 (熟記)</button>
+        </div>
+
+        <!-- 🎛️ 人體工學底部操控懸浮列 -->
+        <div class="ergonomic-bar">
+            <button class="ergo-btn-circle" id="btn-card-prev" onclick="prevCard()" title="上一題">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <button class="ergo-btn-center" onclick="flipCard()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                <span>翻轉卡片</span>
+            </button>
+            <button class="ergo-btn-autoplay" id="btn-autoplay" onclick="toggleAutoPlay()">
+                <span>⏱️ 輪播</span>
+            </button>
+            <button class="ergo-btn-circle" id="btn-card-next" onclick="nextCard()" title="下一題">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+        </div>
+    </div>
+
     <!-- 結算畫面 -->
     <div id="view-result" class="hidden">
         <h1>測驗結算</h1>
         <div class="stat-card">
             <div>正確率</div>
             <div class="stat-rate" id="res-rate">0%</div>
-            <div id="res-detail" style="color: var(--text-muted); font-size: 0.95rem;">實際作答 30 題 ｜ 答對 0 題 ｜ 答錯 0 題</div>
+            <div id="res-detail" style="color: var(--text-muted); font-size: 0.95rem;">實際作答 50 題 ｜ 答對 0 題 ｜ 答錯 0 題</div>
         </div>
         
         <div class="btn-group">
@@ -476,14 +423,28 @@
     </div>
 </div>
 
-<!-- 恭喜神功大成全螢幕彈窗 -->
+<!-- 💾 備份與同步彈窗 -->
+<div id="modal-backup" class="modal-overlay hidden">
+    <div class="modal-card">
+        <h2 style="font-size: 1.25rem; color: var(--primary); margin-bottom: 0.75rem;">學習進度備份與跨裝置同步</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">複製下方代碼可至手機或其他電腦貼上還原熟記與錯題進度：</p>
+        <textarea id="txt-backup" style="font-size:0.8rem; height:90px;" onclick="this.select()"></textarea>
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+            <button class="btn" onclick="copyBackupCode()">📋 複製代碼</button>
+            <button class="btn btn-warning" onclick="applyImportCode()">📥 貼上並還原</button>
+            <button class="btn btn-secondary" onclick="closeBackupModal()">關閉</button>
+        </div>
+    </div>
+</div>
+
+<!-- 100題全熟記彈窗 -->
 <div id="modal-all-mastered" class="modal-overlay hidden">
     <div class="modal-card">
         <div class="modal-icon">🎖️</div>
         <div class="modal-title">恭喜神功大成！</div>
         <div class="modal-desc">
-            太強了！您已將通識課程全數 <strong>90 題</strong> 題庫完全背熟！<br>
-            預祝士高班通識測驗旗開得勝、奪得佳績！
+            太強了！您已將專業準則全數 <strong>100 題</strong> 題庫完全背熟！<br>
+            預祝財務士高班專業測驗旗開得勝、奪得滿分！
         </div>
         <button class="btn btn-warning" onclick="closeMasteredSuccessModal()" style="font-size: 1.05rem; padding: 0.85rem;">🏆 凱旋返回主頁</button>
     </div>
@@ -491,104 +452,111 @@
 
 <script>
 const RAW_QUESTIONS = [
-    // 🟢 易 (36題, id: 1~36)
-    { id: 1, diff: "easy", q: "何謂地形五大要素？", a: "（1）觀測與射界。（2）隱蔽與掩蔽。（3）障礙。（4）地形要點。（5）接近路線。" },
-    { id: 2, diff: "easy", q: "兵要調查之種類區分為何？", a: "（1）基本調查。（2）定期調查。（3）不定期調查。（4）特種調查。" },
-    { id: 3, diff: "easy", q: "現行補給前支作業糧秣應運用何種系統完成申補？", a: "後勤資訊系統。" },
-    { id: 4, diff: "easy", q: "計畫之作業格式，其中本文第四段勤務支援內容為何？", a: "（1）人事。（2）後勤。" },
-    { id: 5, diff: "easy", q: "狀況圖四角註記為何？", a: "（1）右上角：任務。（2）右下角：任務編組。（3）左上角：作戰構想。（4）左下角：附記。" },
-    { id: 6, diff: "easy", q: "裝備隨裝資料須保存近幾個月份主檢記錄保15-002表及申撥補狀態表備查？", a: "近三個月份。" },
-    { id: 7, diff: "easy", q: "國軍心理衛生輔導工作三級防處為何？", a: "（1）初級發掘預防。（2）二級介入輔導。（3）三級專業處遇。" },
-    { id: 8, diff: "easy", q: "國軍官兵輔導類型區分為何？", a: "（1）一般官兵。（2）新進人員。（3）需關懷人員。（4）輔導個案。" },
-    { id: 9, diff: "easy", q: "國軍三大信念為何？", a: "（1）國家。（2）責任。（3）榮譽。" },
-    { id: 10, diff: "easy", q: "偽裝主要的運用方式？", a: "（1）隱藏。（2）掩蔽。（3）融合。（4）變化。（5）模仿。（6）群體。" },
-    { id: 11, diff: "easy", q: "何謂高價值目標？", a: "係指敵軍指揮官為達成任務所需要的主要作戰部隊。" },
-    { id: 12, diff: "easy", q: "指揮官重要情報需求中反敵偵蒐部分稱為？", a: "保密事項。" },
-    { id: 13, diff: "easy", q: "目標偵察方式？", a: "（1）地面偵察。（2）空中偵察。（3）衛星偵察。" },
-    { id: 14, diff: "easy", q: "JCATS系統模擬種類為何？", a: "（1）機動。（2）指揮與管制。（3）火力支援。（4）工兵。（5）後勤。（6）情報。" },
-    { id: 15, diff: "easy", q: "何謂傳統軍人武德的精神修為？", a: "（1）智者不惑。（2）信者不貳。（3）仁者不憂。（4）勇者不懼。（5）嚴者不私。" },
-    { id: 16, diff: "easy", q: "偽裝材料之種類？", a: "（1）天然。（2）人工。" },
-    { id: 17, diff: "easy", q: "任務以五何方式論述，包含哪些？", a: "何人、何時、何地、何事、為何。" },
-    { id: 18, diff: "easy", q: "領導的要訣為何？以何為根本？", a: "誠、勤、明、公為領導之要訣，而以誠為其根本。" },
-    { id: 19, diff: "easy", q: "判斷的分類為何？", a: "（1）指揮官（狀況）判斷。（2）參謀（狀況）判斷。" },
-    { id: 20, diff: "easy", q: "兵棋推演方式有哪幾種？", a: "（1）帶狀法。（2）區塊法。（3）條狀法。" },
-    { id: 21, diff: "easy", q: "比較行動方案的方法有那幾種？", a: "（1）數值比較法。（2）利弊比較法。（3）廣泛因素比較法。" },
-    { id: 22, diff: "easy", q: "二級廠運用「連主檢模組」作業流程為何？", a: "（1）缺失審查。（2）估工估料。（3）轉廠申請。" },
-    { id: 23, diff: "easy", q: "判斷的實施方式為何？", a: "（1）內心判斷。（2）書面判斷。" },
-    { id: 24, diff: "easy", q: "行「書面判斷」時機為何？", a: "時間充裕狀況複雜，則宜採用完整之書面方式表達之。" },
-    { id: 25, diff: "easy", q: "行「內心判斷」時機為何？", a: "時間倉促或狀況簡單，可依思維程序行內心推斷。" },
-    { id: 26, diff: "easy", q: "戰場情報準備將登陸海灘區分哪三種？", a: "（1）紅色海灘。（2）黃色海灘。（3）藍色海灘。" },
-    { id: 27, diff: "easy", q: "陸軍司令部「連主檢資訊系統」服務對象為何？", a: "（1）連級單位。（2）各督管層級。" },
-    { id: 28, diff: "easy", q: "後勤區位於作戰區後方地區，包括哪些專業部隊與設施編成，負責作戰區內各部隊後勤支援任務。", a: "（1）補給。（2）油料。（3）保修。（4）運輸。（5）衛勤。（6）彈藥。" },
-    { id: 29, diff: "easy", q: "支援型態有哪一些？", a: "（1）增援。（2）過境。（3）受增援。" },
-    { id: 30, diff: "easy", q: "評估敵軍威脅定義？", a: "分析敵軍編裝能力、準則運用、慣用之戰術戰法及特、弱點。" },
-    { id: 31, diff: "easy", q: "請說明「國軍用兵後勤管理系統—前支作業功能」內管制表如何區分需求處理情形？", a: "（1）綠色燈號：正常無前支需求。（2）黃色燈號：需求處理中，尚未結案。（3）紅色燈號：前支需求尚未處理。" },
-    { id: 32, diff: "easy", q: "哪種比例尺軍用地圖可知橋梁資訊？", a: "兩萬五千分之一軍用地圖。" },
-    { id: 33, diff: "easy", q: "物質要發生燃燒，所需要具備之條件為何？", a: "（1）可燃物。（2）助燃物。（3）熱能（溫度）。（4）連鎖反應。" },
-    { id: 34, diff: "easy", q: "共軍合成營包含哪些單位？", a: "（1）營部。（2）4個坦克連（裝甲步兵連、步兵連）。（3）火力連。（4）支援保障連。" },
-    { id: 35, diff: "easy", q: "情報傳遞內容為何？", a: "（1）何人。（2）何時。（3）何地。（4）何事。（5）為何。" },
-    { id: 36, diff: "easy", q: "教學之實施程序為何？", a: "（1）講解。（2）示範。（3）討論。（4）實作。（5）測驗。（6）結論。（7）檢討與講評。" },
-
-    // 🟡 中 (36題, id: 37~72)
-    { id: 37, diff: "mid", q: "試述一、三、五類補給分類區分？", a: "（1）第一類：糧秣。（2）第三類：油料。（3）第五類：彈藥。" },
-    { id: 38, diff: "mid", q: "連隊主官如何運用連主檢系統實施督管作為？", a: "（1）可運用系統查詢「故障回報及待料統計」，掌握並管制當月主檢執行進度。（2）另可查詢「申（撥）補狀況表」，即時掌握料件申補與修復進度。" },
-    { id: 39, diff: "mid", q: "何謂作戰地區？", a: "為上級所賦予之作戰範圍，亦為指揮官能運用其現有戰力，以自行直接左右戰局進行之範圍。" },
-    { id: 40, diff: "mid", q: "對救災部隊及地方災區補給物資採何種方式執行？", a: "（1）主動運補。（2）前推預置。" },
-    { id: 41, diff: "mid", q: "安全狀況掌握的步驟為何？", a: "（1）建立官兵正確安全認知。（2）瞭解安全狀況掌握範圍。（3）掌握單位安全危害因素。（4）正視問題有效積極處理。（5）落實狀況處理追蹤機制。" },
-    { id: 42, diff: "mid", q: "督管單位多久須辦理連主檢系統操作講習及簽證作業乙次？", a: "（1）軍團級每半年。（2）聯兵旅級每季。" },
-    { id: 43, diff: "mid", q: "人事十大職掌為何？", a: "（1）兵力。（2）兵員補充。（3）法紀維護。（4）特種人員處理。（5）軍墓勤務。（6）人事程序。（7）人事勤務。（8）聘雇人員。（9）內部管理。（10）其他。" },
-    { id: 44, diff: "mid", q: "部隊指揮程序步驟為何？", a: "（1）受領任務。（2）下達預備命令。（3）擬定初步計畫。（4）處置下列事項。（5）實施偵察。（6）完成計畫。（7）下達命令。（8）督導實施。" },
-    { id: 45, diff: "mid", q: "平時反情報工作執行要領為何？", a: "（1）確立整體觀念。（2）採取必要手段。（3）樹立保密紀律。（4）嚴密保密措施。（5）做好通信保密。（6）檢舉洩密事件。" },
-    { id: 46, diff: "mid", q: "戰時反情報工作執行要領為何？", a: "（1）反制敵人組織滲透與破壞。（2）防止潛敵謠言耳語及黑函。（3）內防突變重於外防突擊。（4）戰備整備檢查。（5）協調聯繫憲兵、警察。（6）嚴格銷毀失效保密資料。" },
-    { id: 47, diff: "mid", q: "安全狀況掌握的要領為何？", a: "（1）掌握時效。（2）內容詳實。（3）注意保密。（4）完善編組。" },
-    { id: 48, diff: "mid", q: "軍人武德可培養何種信念及精神？", a: "培養「知廉恥、辨生死、負責任、重氣節」的情操，以及服從負責、犧牲奉獻的精神。" },
-    { id: 49, diff: "mid", q: "「利害地區」幅員大小？", a: "係以「作戰地區」為核心，配合兩個基本概念，即是「早期預警」與「安全應變」。" },
-    { id: 50, diff: "mid", q: "共軍4大軍種及武警部隊21式作訓服左手臂軍種臂章顏色為何？", a: "（1）陸軍：綠色。（2）海軍：藍白相間。（3）空軍：淺藍色。（4）火箭軍：橘色。（5）武警部隊：紅黑相間。" },
-    { id: 51, diff: "mid", q: "軍事決心策定程序之階段與內容區分？", a: "（1）受領任務。（2）任務分析。（3）研擬行動方案。（4）分析行動方案。（5）比較行動方案。（6）核准行動方案。（7）頒布計畫。" },
-    { id: 52, diff: "mid", q: "聯合作戰定義及目的？", a: "凡兩個（含）以上之軍種部隊，執行共同任務，達成同一作戰目的，所遂行之作戰，不論其階層與指揮關係如何，均謂之聯合作戰；聯合作戰在統合運用各軍種、各空間戰力，以達成共同任務為目的。" },
-    { id: 53, diff: "mid", q: "JCATS主要訓練課目包含哪些？", a: "（1）地面運動。（2）空中機動。（3）空降作戰。（4）城鎮作戰。（5）兩棲作戰。（6）反恐、人質營救。" },
-    { id: 54, diff: "mid", q: "國軍信念為何？", a: "（1）為何而戰：為中華民國國家生存發展而戰。（2）為誰而戰：為臺澎金馬百姓安全福祉而戰。" },
-    { id: 55, diff: "mid", q: "作戰判斷之首部，包括哪六項？", a: "（1）單位、判斷類別、編號。（2）受文者。（3）地點。（4）時間。（5）字號。（6）參考資料。" },
-    { id: 56, diff: "mid", q: "計畫之意義？", a: "計畫乃實現指揮官決心或企圖，所策訂之具體行動方案，為下達命令及指揮作戰準備與實施之準據。" },
-    { id: 57, diff: "mid", q: "戰備階段之劃分區分哪三個階段？", a: "（1）戰備整備階段。（2）應急作戰階段。（3）全面作戰階段。" },
-    { id: 58, diff: "mid", q: "請分別回答下列問題：1.FREQ鍵在定明（密）及跳明（密）模式下會出現哪種參數？2.37跳頻機無線電機波道數及預置波道各為多少？", a: "（1）定明（密）：頻率；跳明（密）：跳頻參數。（2）波道數：2320個；預置波道數8個。" },
-    { id: 59, diff: "mid", q: "何謂後勤判斷？", a: "後勤判斷係依據情報與作戰判斷，分析與研判所有可能影響任務達成之後勤因素，用以判定現有後勤能量能否支援作戰；何案最能獲得後勤有效之支援，並提出克服後勤支援困難之建議。" },
-    { id: 60, diff: "mid", q: "術科教學法區分哪幾種？", a: "（1）示範摹擬法。（2）觀摩比較法。（3）學生導師法。（4）統一練習法。（5）相互競賽法。（6）對抗演練法。（7）狀況誘導法。（8）檢查糾正法。（9）個別教學法。" },
-    { id: 61, diff: "mid", q: "陸軍司令部推行「連主檢資訊系統」目的為何？", a: "藉資訊系統驗證各級單位執行成效，並建立自評督管機制，以務實裝備妥善管理。" },
-    { id: 62, diff: "mid", q: "敘述主檢系統裝備故障報告功能目的？", a: "提供連隊線上回報裝備故障狀況及停用判定；運用系統向二級廠回報裝備檢查缺失，取代原「保15-002表」紙本送交二級廠審查作業。" },
-    { id: 63, diff: "mid", q: "敘述主檢系統新增損壞查詢功能目的？", a: "運用系統列印當月份新增損壞項目表，由主官批閱管制，取代現行逐份批示保表。" },
-    { id: 64, diff: "mid", q: "何謂關鍵行動？", a: "綜合分析作戰之「特定行動」及「推斷行動」之必然性、重要性、時序性與限制因素後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
-    { id: 65, diff: "mid", q: "研擬行動方案步驟，除分析敵、我相對戰力及研擬各種行動方案選項外，還有那些？", a: "（1）初步規劃行動方案所需兵力及部署。（2）研擬行動方案作戰構想。（3）律定行動方案任務編組。（4）完成行動方案文字敘述及圖解標繪。" },
-    { id: 66, diff: "mid", q: "戰場情報準備作業步驟為何？", a: "（1）界定戰場空間。（2）分析作戰地區。（3）評估敵軍威脅。（4）研判敵可能行動。" },
-    { id: 67, diff: "mid", q: "何謂接近路線？", a: "供某一適當大小與類型之部隊，用以通達地形要點或目標之一適切而便利之運動路線。" },
-    { id: 68, diff: "mid", q: "共軍合成旅包含哪些單位？", a: "旅部、4個合成營、偵察營、砲兵營、防空營、作戰支援營、勤務保障營共9個營級單位。" },
-    { id: 69, diff: "mid", q: "在兵棋推演準備工作中，除準備各項推演工具、列述我軍部隊及列舉假定事項外，還有那些步驟？", a: "（1）列舉已知重大事件及決心點。（2）決定評估要項。（3）選擇兵棋推演模式。（4）選擇記錄及公佈結果方式。" },
-    { id: 70, diff: "mid", q: "試問軍品整備範圍為何？", a: "各部隊列管之主（重）要武器裝備，包含戰甲砲車、火砲、輕、重兵器、輪型車輛（軍、民用、特種）、光學裝備、工兵裝備、通信裝備、化學裝備、軍醫裝備等。" },
-    { id: 71, diff: "mid", q: "偽裝之定義？", a: "軍事偽裝，即為隱蔽自己，欺騙、引誘及迷惑敵人所採取之各種隱真示假的技術與戰術作為。" },
-    { id: 72, diff: "mid", q: "作戰地區戰地人文分析應包含哪些？", a: "政治、社會、經濟、心理等因素，對作戰行動、勤務支援及政治作戰，影響甚鉅；從事判斷、下達決心與處置時，均須考慮之。" },
-
-    // 🔴 難 (18題, id: 73~90)
-    { id: 73, diff: "hard", q: "保密十要項為何？", a: "（1）不洩漏秘密。（2）不探聽秘密。（3）不私藏秘密。（4）不記述秘密。（5）不擅入禁區。（6）要妥管秘密資料。（7）要恪遵保密規定。（8）要防範非法竊取。（9）要檢舉洩密事件。（10）要嚴密保密設備。" },
-    { id: 74, diff: "hard", q: "反情報責任七要項為何？", a: "（1）查誰在洩漏機密。（2）查誰在秘密破壞。（3）查誰的言行反常。（4）查誰在分化團結。（5）查誰在傳播謠言。（6）見可疑追查到底。（7）遇問題立即反映。" },
-    { id: 75, diff: "hard", q: "試述中共網路滲透方式為何？", a: "（1）潛伏網路觀察動態。（2）注蒐官兵公開資訊。（3）杜撰故事伺機接觸。（4）運用交通規避查察。（5）利誘吸收蒐情竊密。" },
-    { id: 76, diff: "hard", q: "憂鬱症的症狀有哪些？", a: "（1）情緒低落。（2）明顯對事物失去興趣。（3）胃口改變。（4）睡眠習慣改變。（5）動作遲緩或因不安活動量增加。（6）疲倦或失去活力。（7）無價值感或過強的罪惡感。（8）無法有效思考、注意力不集中或猶豫不決。（9）自殺的念頭。" },
-    { id: 77, diff: "hard", q: "偽裝之基本要求？", a: "（1）掌握敵人偵蒐能力。（2）避免暴露行蹤遭敵偵察。（3）落實偽裝反制偵測。（4）考慮效果，適度偽裝。（5）隱匿企圖減低移防頻率。（6）依需要設置假設施（目標）。（7）避免敵人預判我作戰模式。" },
-    { id: 78, diff: "hard", q: "部隊指揮程序中預備命令內容為何？", a: "（1）簡要之敵情。（2）任務概要。（3）完成作戰準備之時限，接受命令之時間與地點。（4）特別指示事項。" },
-    { id: 79, diff: "hard", q: "何謂特定行動？推斷行動？關鍵行動？", a: "（1）特定行動：由上級賦予、指派交由本單位執行之任務。（2）推斷行動：係本部就支持「特定行動」達成與全般狀況考量，由單位自行推斷產生者。（3）關鍵行動：綜合分析特定行動與推斷行動之必然性、重要性、時序性與限制因素後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
-    { id: 80, diff: "hard", q: "情報計畫用以分發那些事項之文件？", a: "（1）敵軍情報與作戰地區特性之情報。（2）情報需求。（3）情報任務之分配。（4）部隊管制。（5）情報與反情報實施的政策與程序。" },
-    { id: 81, diff: "hard", q: "偽裝基本目標識別因素有哪些？", a: "（1）位置。（2）形狀。（3）陰影。（4）表面結構。（5）光澤。（6）色彩。（7）色調。（8）運動。（9）溫度。" },
-    { id: 82, diff: "hard", q: "JCATS系統後勤模擬為何？", a: "（1）彈藥及油料補給。（2）裝備維修及撤收。（3）人員後送及治療。（4）後方指揮所之行動。（5）緊急行動之規劃。" },
-    { id: 83, diff: "hard", q: "作戰判斷之本文，包括哪五段？", a: "（1）任務。（2）狀況與行動方案。（3）我軍行動方案之分析。（4）我軍行動方案之比較。（5）結論（決心）。" },
-    { id: 84, diff: "hard", q: "試述初級發掘預防三步驟為何？", a: "（1）一問：陪伴多點時間，主動關懷、積極傾聽。（2）二應：提供對方多點適切回應支持。（3）三轉介：轉介心輔、醫療機構，尋求專業協助。" },
-    { id: 85, diff: "hard", q: "作戰計畫本文中作戰構想包含哪些範圍？（順序不得調換）", a: "（1）全般概念。（2）兵力。（3）火力。（4）情監偵。（5）工兵。（6）防空。（7）化生放核。（8）政戰。（9）持續作戰（勤務支援）。" },
-    { id: 86, diff: "hard", q: "計畫與命令之區分？", a: "（1）命令無「假定事項」及「生效時間」兩項外，其格式與計畫相同。（2）命令內容力求簡單明確，計畫可較詳細而具彈性。（3）命令必須適時下達，計畫可依需要提前頒發。（4）計畫作業之依據，係針對「未來事件」之預判，而先期實施作業，待命實施；命令作業則針對當前狀況之研判，而有明確之執行時間。" },
-    { id: 87, diff: "hard", q: "陸軍司令部「連主檢資訊系統」連級權責為何？", a: "（1）運用系統回報每月連主檢新增裝備故障狀況。（2）運用系統掌握各類裝備保修工令及申補憑單。（3）運用系統調製每月「主要裝備狀況報告表」。（4）反映單位執行窒礙與研改建議。" },
-    { id: 88, diff: "hard", q: "推行主檢系統後，連隊各項紙本表單，應如何存查？", a: "（1）保15-002表（原始檢查紀錄）一式一份，連隊統一存查。（2）新增損壞項目報告表（主官批示）一式一份，連隊統一存查。（3）主要裝備狀況報告表（主官批示）一式一份，連隊統一存查。（4）保15-002表（系統產製）一式一份，裝備資料袋。（5）裝備申撥補狀態表，視需求列印，由系統線上查詢。" },
-    { id: 89, diff: "hard", q: "推行主檢系統後，原欠撥憑單突然消失該如何處置？", a: "（1）詢問二級廠該項料件是否已經開撥？（2）詢問二級廠該筆憑單是否已經撤銷？（3）詢問二級廠是否為無效憑單？" },
-    { id: 90, diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "（1）建立戰場環境之全般概念。（2）確定「作戰地區」、「利害地區」之範圍。（3）確認作業詳盡之程度。（4）準備作業資料。" }
+    { no: 1, q: "常備兵役軍事訓練人員之退伍旅費支給標準為何？", a: "退員戶籍地址距離單位所在地未達60公里者，報支200元，60公里以上者，報支600元。" },
+    { no: 2, q: "依據國軍各級單位額定零用金作業規定，國防經費零用金每筆支出上限，額度為多少？", a: "2萬。" },
+    { no: 3, q: "財務人員製作移交清冊其造報方法？", a: "（1）先了解移交作業之相關法令與作業規定。（2）將「國軍非預算支用單位現金收支登記簿」上之現金及各項費款的部分結算清楚，並將平日所保管之現金、帳籍憑證、各類財產與法令規章等必須列入移交之事項做一整理。（3）至單位往來之代理國庫銀行，申請存款餘額證明表與國庫核帳清單。（4）按國軍現行移交作業規定及其格式，繕造移交清冊，並詳細檢查是否正確無誤。" },
+    { no: 4, q: "記帳憑證有那幾種？", a: "會計法第53條將記帳憑證分為3種：收入傳票、支出傳票及轉帳傳票。" },
+    { no: 5, q: "向國庫（代理國庫）、郵局領取空白支票後應注意事項為何？", a: "具領空白支票時，須詳細檢查帳號、支票號碼、張數及所附支票領取證，有無錯誤或遺漏，國庫機關專戶存款支票為便於管理，於票面一律加劃雙平行線及禁止背書轉讓字樣。" },
+    { no: 6, q: "單位如因任務實需訂製某品項，單價超過1萬元，是否要建立財產增加單？", a: "依財物標準分類，單位購製品項屬單價超過1萬元及使用年限達二年以上者，應建立財產增加單。" },
+    { no: 7, q: "非預算支用單位現金收支登記簿，記帳組織系圖為何？", a: "會計事項→原始憑證→記帳憑證→現金收支登記簿→現金餘額分析表。" },
+    { no: 8, q: "依據國軍代收款處理規定，收支計畫其個案金額在多少元（含）以上者，應報國防部核定？", a: "1,000萬。" },
+    { no: 9, q: "年度考績獎金核發標準為何？", a: "核發基準：依考績核定當月（1月1日）所任職務之俸給總額（薪俸、專業加給及主管職務加給）按下列標準發給：（1）績等「甲等」以上者：發給一個月俸給總額；已晉至本階最高俸級者（含志願役士兵），發給二個月俸給總額。（2）績等「乙上」者：發給半個月俸給總額；已晉至本階最高俸級者（含志願役士兵），發給一個半月俸給總額。（3）績等「乙等」以下者：不核發考績獎金。" },
+    { no: 10, q: "本島各機關學校憑證自總決算公布日起，保存幾年？會計月報表自總決算公布日起，保存幾年？", a: "（1）憑證：2年。（2）會計月報表：3年。" },
+    { no: 11, q: "依據軍費預算執行及支付結報規定第6條，預算支用區分為哪幾種方式？", a: "（1）一般簽證支用。（2）定額簽證支用。（3）委託簽證支用。（4）零用金簽證支用。" },
+    { no: 12, q: "簡述內部審核之實施方式為何？", a: "兼採書面審核與定期或不定期實地抽查，並得透過電腦輔助處理。" },
+    { no: 13, q: "依據預算法第6條，何謂歲出預算？", a: "稱歲出者，謂一個會計年度之一切支出。但不包括債務之償還。" },
+    { no: 14, q: "國軍各級單位現金會計作業規定簿記組織會計簿籍之種類為何？", a: "（1）序時簿：現金出納日記簿。（2）分類帳簿：總分類帳、明細分類帳、現金收支登記簿。" },
+    { no: 15, q: "依據本軍強化基層部隊財務管理內部控制具體作法，保險櫃應有何項保險機制？", a: "（1）鑰匙。（2）密碼鎖。" },
+    { no: 16, q: "基層單位財務業務集中優點為何？", a: "（1）減少國庫支票開立次數。（2）降低洽公次數。（3）提升預財士官編階，提高留營意願。（4）憑證集中保管、降低遺失風險。（5）人員集中編設可互為代理，良性互動教學相長。（6）連級會計月報由上級代編。" },
+    { no: 17, q: "當年度及以前年度已支出之代收款，若因故支出收回，其處理方式為何？", a: "（1）當年度者由簽證支用單位填製「更正記帳憑單」，並註明原因，送地區財務單位以支出沖回處理。（2）以前年度者需退還原委辦單位，如毋需退還原委辦單位者，應以歲入「雜項收入」解庫。" },
+    { no: 18, q: "各部隊（含外島單位）憑證自總決算公布日起，保存幾年？會計月報表自總決算公布日起，保存幾年？", a: "（1）憑證：2年。（2）報表：2年。" },
+    { no: 19, q: "依據國軍各級單位現金會計作業規定，試問暫收款之定義為何？", a: "（1）待查明。（2）領回轉發。（3）待解繳。（4）待退還。" },
+    { no: 20, q: "依國軍財務單位發放薪餉作業要點，支薪單位每月應送財務單位薪餉表冊計有幾類表單？", a: "（1）薪餉表冊。（2）人薪差異調節表。（3）追補（扣）人員申請表。（4）主副食費收（領）款收據。（5）人事命令副本。" },
+    { no: 21, q: "依預算法第10條規定，歲入、歲出預算，按其收支性質區分為哪兩類？", a: "經常門、資本門。" },
+    { no: 22, q: "保管期限內之會計檔案不慎遺失，應如何處置？", a: "依會計法第109條規定應即呈報該管上級主辦會計人員或主計機關及所在機關長官與該管審計機關，分別轉呈各該管最上級機關，非經審計機關認為其對於良善管理人應有之注意並無怠忽，且予解除責任者，應負懲戒。匿不呈報者，從重懲戒;若至公款受損害者，負賠償責任。" },
+    { no: 23, q: "依預算法第16條規定，預算區分為幾種？", a: "總預算、單位預算、單位預算之分預算、附屬單位預算、附屬單位預算之分預算。" },
+    { no: 24, q: "本島各機關學校及部隊外島單位帳籍自總決算公布日起，保存幾年？", a: "（1）本島各機關學校：5年。（2）部隊外島單位：2年6個月。" },
+    { no: 25, q: "依政府採購法第18條規定，招標方式有那幾種？", a: "公開招標、選擇性招標、限制性招標。" },
+    { no: 26, q: "依預算法第79條規定，各機關請求提出追加歲出預算提出之條件為何？", a: "（1）依法律增加業務或事業致增加經費時。（2）依法律增設新機關時。（3）所辦事業因重大事故經費超過法定預算時。（4）依有關法律應補列追加預算者。" },
+    { no: 27, q: "依預算法第5條規定，經費按其得支用期間分那幾種？", a: "歲定經費、繼續經費、法定經費。" },
+    { no: 28, q: "會計法第4條將政府會計事務依其性質區分為哪四類？", a: "普通公務、特種公務、公營事業、非常事件。" },
+    { no: 29, q: "依國軍各單位經管款項存款帳戶管制規定第3條及第4條，開立國庫機關專戶時機為何？", a: "新單位奉核定編成、駐地變更、奉撥專款。" },
+    { no: 30, q: "依國軍各級單位現金會計作業規定第32條第6項，伙食團於何種情況下須歸還副食週轉金？", a: "年度結束時歸還。" },
+    { no: 31, q: "主計部門及伙委所掌管「伙食費款收支登記表」其帳務以何方式為會計基礎辦理？", a: "（1）現金收付實現制。（2）權責發生制。" },
+    { no: 32, q: "依國防部所屬各級單位辦理國庫機關專戶存款網路銀行業務應行注意事項，各單位運用網路銀行轉帳交易至少律定哪四層以上之作業控管機制，並簽奉單位主官核定？", a: "（1）編輯（出納）。（2）審核（會計）。（3）核定（主計主管）。（4）放行（主官）。" },
+    { no: 33, q: "因應年度收領款收據採行電子化作業，試問列印份數及流程為何？", a: "電子化收據開立時列印一式兩份，並由單位出納（經管財務人員）、業務主管（主辦出納）、主辦會計（財務業務主管）及主官逐級用印後，一份交付予付款單位或繳款人，另一份由收領款單位會計人員附入會計傳票作為附件備查。" },
+    { no: 34, q: "依據國軍各級單位主計及出納人員交代作業規定，何謂出納人員？", a: "單位主辦出納人員及所屬承辦出納事務人員均屬之。" },
+    { no: 35, q: "依據預算法83條，行政院得於年度總預算外，於何情況下提出特別預算？", a: "（1）國防緊急設施或戰爭。（2）國家經濟重大變故。（3）重大災變。（4）不定期或數年一次之重大政事。" },
+    { no: 36, q: "依會計法第96條規定，簡述內部審核之範圍為何？", a: "（1）財務審核：謂計畫、預算之執行與控制之審核，包括預算審核、收支審核及會計審核。（2）財物審核：謂現金及其他財物之處理程序之審核，包括現金審核、採購及財物審核。（3）工作審核：謂計算工作負荷或工作成果每單位所費成本之審核。" },
+    { no: 37, q: "公款法用之意義？", a: "任何計畫、預算的編製、發布、分配、調整，和經費的支用、結報、帳務處理，以及規定頒訂等，都必須依據政府相關法令處理。" },
+    { no: 38, q: "人事薪給資料查核時機為何？", a: "（1）支薪單位人員異動。（2）支薪單位編制修訂。（3）每半年實施人事薪給資料查核乙次。" },
+    { no: 39, q: "依國軍各級單位額定零用金作業規定，預算支用單位零用金申領額度係按上年度同期（月份）或最近幾日內零用金支出結報案件總金額，扣除定額經費以收（領）款收據（以下簡稱領據）結報部分，乘以一定比率計算，以及時密切配合各該單位當時之任務需求，萬位以下之金額湊整進萬位處理？", a: "30日。" },
+    { no: 40, q: "團體獎金之運用範圍為何？試述之。", a: "應置重點於改善官兵福利及增進官兵權益，如個人獎金（品）、餐會、自強活動暨其他屬團體性之支出事項。" },
+    { no: 41, q: "依據政府支出憑證處理要點第17條，各機關審核支出憑證時，應由何人完成簽名？", a: "事項之主管人員及經手人、主辦會計人員或其授權代簽人、機關長官或其授權代簽人。" },
+    { no: 42, q: "依現金會計作業規定第127條，審核原始憑證時，發現何種情形應拒絕簽證？", a: "（1）未註明用途與案據者。（2）書據之數字或文字有塗改痕跡現象，而塗改處未經負責人員簽名或蓋章證明者。（3）書據上表示「金額或數量」之文字、號碼不符者。（4）應經經手人、品質驗收人、數量驗收人及保管人簽章而未經其簽名或蓋章者；或應附送品質或數量驗收之證明文件而未附送者。（5）應經單位主官或事項之主管或主辦人員之簽章而未簽章者。（6）與會計法、支出憑證處理要點或其他法令不符者。" },
+    { no: 43, q: "國軍計畫預算制度之特性？", a: "（1）著重遠程規劃。（2）考量整體發展。（3）實施整合評估。（4）確立計畫結構。（5）強化授權加責。（6）建立單位成本。（7）運用資訊系統。" },
+    { no: 44, q: "應備具之支出原始憑證，事實上無法取得時，應如何處置？", a: "由經辦人員填具支出證明單，書明不能取得之原因，陳經主管人員轉呈單位主官或其授權代簽人核准者，可憑以造具記帳憑證。" },
+    { no: 45, q: "試述櫃存現金上限由何人訂定？應如何訂定？", a: "單位主官；由單位主官依現金安全考量及實際任務需要適宜核定，並應經常檢討調整及檢查，以維現金安全。" },
+    { no: 46, q: "政府支出憑證處理要點第5條規定，各機關支付款項所取得之統一發票（含電子發票證明聯）或依加值型及非加值型營業稅法規定掣發之普通收據，應記明事項為何？", a: "（1）營業人之名稱及其統一編號。（2）品名及總價。僅列代號者，應由經手人加註或擇要譯註品名。（3）開立日期。（4）機關名稱或統一編號。" },
+    { no: 47, q: "試述定額經費之支用規定？", a: "行政事務：因公執行單位或團體之事務及業務推展所需費用。部隊特別補助：單位主官為加強領導統御，發揮即時犒賞部屬之獎勵（含獎金、獎品）及購置慰問品等所需費用。" },
+    { no: 48, q: "依政府支出憑證處理要點規範，何謂支出憑證？試述之。", a: "為證明支付事實所取得之收據、統一發票、表單或其他可資證明書據；另支出憑證如透過網路下載列印，應由經手人簽名。" },
+    { no: 49, q: "試述廚餘處理方式？", a: "（1）尋商變賣：應與承商完成訂約，其變賣所得價款，應全數用於改善官兵伙食，不得移作他用並依「國軍各級單位現金會計作業規定」納入副食費科目登帳管理。（2）依一般廢棄物清理法規定：委託公、民營廢棄物清除、處理機構辦理回收之。" },
+    { no: 50, q: "試論述現金基礎？", a: "謂於收付現金時，認列交易及其他事項的會計基礎，在現金基礎下，只有在收取現金或支付現金時，才會認列交易與事件。" },
+    { no: 51, q: "依據政府支出憑證處理要點第4條，收據應記明事項為何？", a: "（1）受領事由。（2）實收數額。（3）機關名稱。（4）受領人之姓名或名稱、身分證明文件字號、營利事業或扣繳單位統一編號。（5）開立日期。（6）其他由各機關依其業務性質及實際需要增列之事項。" },
+    { no: 52, q: "試論應計基礎之內涵？", a: "當交易及其他事項發生時，即予認列，記載於會計紀錄中，並在相關期間於財務報表表達，而不是在收到或支付現金時才認列的會計基礎。" },
+    { no: 53, q: "軍費預算之執行及支付結報包括哪些項目？", a: "分配預算編造、預算分配、預算簽證支用、價款支付、憑證存管及預算保留作業。" },
+    { no: 54, q: "依決算法第23條，審計機關審核各機關或各基金決算，應注意哪六列事項？", a: "（1）違法失職或不當情事之有無。（2）預算數之超過或剩餘。（3）施政計畫、事業計畫或營業計畫已成與未成之程度。（4）經濟與不經濟之程度。（5）施政效能或營業效能之程度，及與同類機關或基金之比較。（6）其他有關決算事項。" },
+    { no: 55, q: "依會計法第22條，會計報告分為哪2項？", a: "（1）靜態之會計報告：表示一定日期之財務狀況。（2）動態之會計報告：表示一定期間內之財務變動經過情形。" },
+    { no: 56, q: "國軍財力指導之目的？", a: "研判本期程可獲國防財力，確定國防預算結構比例，律定各單位可資運用國防預算額度，提示政策指導，俾為兵力整建與5年施政計畫作為之基準。" },
+    { no: 57, q: "何謂主計人員？", a: "辦理單位主辦主計（會計）人員及所屬承辦主計事務人員。" },
+    { no: 58, q: "依國軍券軍款處理作業規定，收支計畫應於收到款項幾日內完成計畫編製？", a: "10個工作日。" },
+    { no: 59, q: "國軍以單位領據結報之各項經費項目為何？", a: "（1）定額行政事務費。（2）部隊特別補助費。（3）保密科目經費。" },
+    { no: 60, q: "分批付款之採購案件，須檢附哪些文件？", a: "分批（期）付款之收據或統一發票、分批（期）付款表；其訂有契約者，應於第一次付款時檢送契約副本或抄本。" },
+    { no: 61, q: "每月月底預財人員應督促伙委完成伙食帳之製作，並於次月5、10日前分別應完成何事項？", a: "5日前完成調節表製作，及每月10日前完成各項憑證及每日公布之伙食公布表、採買單等相關憑證，裝訂成冊並呈主官核閱。" },
+    { no: 62, q: "依預算法第2條，何謂概算？預算案？法定預算？", a: "（1）各主管機關依施政計畫初步估計之收支。（2）預算之未經立法程序者。（3）其經立法程序而公布者。" },
+    { no: 63, q: "依據「政府支出憑證處理要點」透過網路交易應檢附憑證為何？", a: "依規定由營業人提供或機關自行下載列印，因特殊情形不能取得者，得以獲有足資證明支付事實電子憑證作為支出憑證。" },
+    { no: 64, q: "依國軍各級單位主計及出納人員交代作業規定，經管財務人員交接事項內容包含哪些？", a: "（1）會計業務：經管之現金收支登記簿、各帳戶餘額明細資料、會計檔案、會計業務用品、會計法令規章、會計類待辦事項及其他有關會計業務應交代事項等。（2）出納業務：經管之各項現金、票據、銀行存款等及銀行存款調節表、各項原始憑證及支票、領款收據（存根）、出納業務用品、出納法令規章、出納類待辦事項及其他有關出納業務應交代事項等。" },
+    { no: 65, q: "三節加菜金為哪三節？給與為多少？", a: "春節、端節、秋節；50元。" },
+    { no: 66, q: "戰時年度預算與年度戰時預算有何差異？", a: "（1）戰時年度預算：係指戰爭發生後所編列之預算。（2）年度戰時預算：係指年度內為因應可能發生戰事所編列之預算。" },
+    { no: 67, q: "依預算法第37條規定，各機關單位預算，歲入應按何種科目編製？歲出應按何種科目編製之？", a: "（1）來源別。（2）政事別、計畫或業務別與用途別。" },
+    { no: 68, q: "依「國軍國內出差旅費報支規定」可申領旅費項目為何？並簡述之。", a: "（1）交通費：包括出差行程中必須搭乘之飛機、高鐵、船舶、火車、汽車、捷運、公共自行車等費用，均覈實報支；單位專備交通工具或出差人員領有免費票或搭乘便車者，不得報支交通費。搭乘飛機、高鐵、座（艙）位有分等之船舶、火車者，報支交通費時，應檢附票根或購票證明文件。駕駛自用汽車、機車出差者，其交通費得按必要路程之公里數（尾數不足一公里者，進位為一公里），汽車以每公里新臺幣三元、機車二元報支。（2）住宿費：出差地點距離單位所在地60公里以上，且有住宿事實者，得依報支數額表規定每日上限內（平日：3,500元；假日：4,500元），檢據覈實報支住宿費。（3）雜費：各單位依實際出差行程，達4小時以上得報支400元；未滿四小時者，雜費得報支200元；所稱實際出差行程，不含提前出發及延後返回所需路程時間。" },
+    { no: 69, q: "國防部所屬各級單位主官及副主官行政費，動支對象為何？", a: "各級部隊、機關單位指揮官、副指揮官及中校以上主官、副主官等。" },
+    { no: 70, q: "依預算法第2條，何謂分配預算？", a: "在法定預算範圍內，由各機關依法分配實施之計畫稱為分配預算。" },
+    { no: 71, q: "試舉主副食費收入項目除預撥副食費及結補副食費等2項外，尚有那5項？", a: "（1）友軍及部內各單位支援、受訓等繳交之搭伙費。（2）僅扣副食差額。（3）餘糧價繳。（4）加菜金。（5）其他（如廚餘收入等）。" },
+    { no: 72, q: "試舉主副食費支出項目5項？", a: "（1）各旬菜金。（2）止伙費。（3）炊具費。（4）副食外購。（5）瓦斯費。" },
+    { no: 73, q: "依國軍各級單位現金會計作業規定第39條，試述參加副供站採買單位其主副食費管理方式？", a: "應交由其主計部門統一保管，以貫徹統收統支，維護現金安全。" },
+    { no: 74, q: "依軍費預算執行及支付結報規定第6條第10項，採購案於經費結報時，須檢附哪些文件？", a: "檢附收據或統一發票、驗收證明文件（依政府採購主管機關規定應填具結算驗收證明書者，檢送結算驗收證明書送審）及其他足資證明之相關文件；如訂有契約者，應檢附契約副本或抄本。如無前項驗收證明文件時，應由事項之主管人員及經手人、主辦會計人員或其授權代簽人、機關長官或其授權代簽人於原始憑證黏存單內分別簽名。" },
+    { no: 75, q: "新兵訓練期間，依「國軍薪餉發放法規及案例彙編」其發放程序為何？", a: "新訓部隊於新兵入伍報到後2週內，依徵召人員名冊造具薪餉表冊及主副食費收據，送發放薪餉財務單位審核，並於1週內協調排訂日程發放薪餉。" },
+    { no: 76, q: "依國軍官兵止伙作業規定第6條，申領止伙金額如何計算？", a: "依國軍官兵主副食計價標準所列金額，按止伙天數核算，餘不列入止伙，月份有分大、小月所止伙之金額會有誤差，遇小數點以四捨五入計列。" },
+    { no: 77, q: "各單位所取據之紙本電子發票，倘顯無法長時間保存者，應如何處理？", a: "無須影印發票，亦無須於發票或申請動支經費文件內註記發票字軌號碼，日後若有查考實需可至財政部相關頁面搜尋印製。" },
+    { no: 78, q: "依軍費預算執行及支付結報規定第2條第5項，何謂甲種財務代理人？", a: "財務單位在特殊情況下，得應預算支用單位之請求，臨時指派財務官於指定地點辦理費款支付事宜者，稱為甲種財務代理人。" },
+    { no: 79, q: "依會計法第51條，何謂記帳憑證？述明之", a: "證明處理會計事項人員責任而為記帳所根據之憑證。" },
+    { no: 80, q: "試述國軍部隊至副供站採買有何限制，另駐地偏遠單位如何處置？", a: "（1）凡距副供站車程（單程）在30分鐘內之單位均應依規定向國軍副供站集中採購。（2）駐地偏遠之單位，得由上級單位視狀況研採併車分送或隔日採購方式行之。" },
+    { no: 81, q: "收款之收付保管原則為何？", a: "均應依「統收統支」原則由國防部主計局財務中心所屬地區財務單位統一辦理，其餘各單位不得自為現金收支，或截留坐支。" },
+    { no: 82, q: "依國軍官兵止伙作業規定，試述止伙費申領事由為何？", a: "（1）公假、公差。（限同一事由未申請雜費者，始得申請）。（2）慰勞假、榮譽假。（3）婚假。（4）產（檢）假及陪產（檢）假。（5）流產假。（6）喪假。（7）事假、病假及生理假。（8）調職。（9）軍事院校接受基礎、進修、深造教育期間假期之寒暑假、結訓假及新兵結訓假。（10）支援、因公受訓、職訓、講習及傷病住院。" },
+    { no: 83, q: "試述炊具費每人每月限額及範圍？", a: "（1）每人每月由副食費提列20元額度為限。（2）專供廚房、餐廳、購置消耗（零星）性用品及補充清潔用品、引火材料等支用，每月如有結餘時，應轉回副食費運用，不得移作他用。" },
+    { no: 84, q: "基層單位主官及預財士辦理移交時，監交人分別為何？", a: "（1）各基層單位主官，其監交人員為上級單位主官及主計單位主管（或其代表）。（2）各基層單位預財士，其監交人員為單位主官及主計單位主管（或其代表）。" },
+    { no: 85, q: "簡述內部審核之區分為何？", a: "（1）事前審核：謂事項入帳前之審核，著重收支之控制。（2）事後複核：謂事項入帳後之審核，著重憑證、帳表之複核與工作績效之查核。" },
+    { no: 86, q: "依會計法第9條，政府會計之組織為那五種？", a: "總會計、單位會計、分會計、附屬單位會計、附屬單位會計之分會計。" },
+    { no: 87, q: "施政計畫之特性為何？", a: "前瞻性、整體性、持續性。" },
+    { no: 88, q: "所屬各級單位主官及副主官行政費，上校及中校主官、副主官每月列支額度為何？", a: "（1）上校：6,600元。（2）中校：5,100元。" },
+    { no: 89, q: "依各級單位對經管財務行政事項人員實施內部控制之自我檢查作業要點，其範圍為何？", a: "（1）預算執行。（2）會計處理。（3）現金收支。（4）財產保管。（5）採購及處分財物。（6）領回轉發案件（含營外欠款情形）。（7）補助費跨機關通報案件。（8）主計部門財務輔檢督導情形。（9）臨時交辦及其他重要事項。" },
+    { no: 90, q: "國軍計畫預算制度之目的？", a: "（1）密切配合國家目標。（2）明確設計國軍兵力整建目標。（3）研究分析有關備選方案，貫徹政策節約。（4）顯示未來5年之全般需求，分期貫徹執行。（5）確保戰略目標與資源相結合，並經濟有效運用國家資源。" },
+    { no: 91, q: "依軍費預算執行及支付結報規定第8條第3項，自辦理暫付之日起，最遲不得超過幾天？", a: "其結報期限，自辦理暫付之日起，除外購案預付款等無法取得憑證結報者外，最遲不得超過45天（含例假日）。" },
+    { no: 92, q: "試述國防部所屬各級單位主官及副主官特別費使用範圍？", a: "（1）贈送婚喪喜慶之禮金、奠儀、禮品、花籃（圈）、喜幛、輓聯、中堂及匾額等支出。（2）對本單位及所屬單位人員以實物之獎（犒）賞、慰勞（問）及餐敘等支出。（3）對外部單位（即本單位及所屬單位以外單位）、民間團體與有關人士等招待、餽（捐）贈及慰問等支出。" },
+    { no: 93, q: "依國軍勞軍款處理作業規定，試論述捐贈者未指定用途之運用原則？", a: "捐贈者如未指定用途者，以運用於改善全體官兵之生活福利為原則，應編製收支計畫，經權責單位核准後動支，並於核准計畫之實施期間內支用完畢，否則應予報繳國庫。" },
+    { no: 94, q: "主副食費結餘改善方法？", a: "編訂「伙食結餘運用先期計劃表」，應按莒光日20％、慶生會20％、演訓、年節20％、平日加菜40％等方式分配於平時伙食內食用，避免一次加菜暴飲暴食；冬季應注意供應熱食。" },
+    { no: 95, q: "「國軍人員申領各項補助費精進計畫」之目的為何？", a: "（1）簡化基層業務負荷，落實有感服務。（2）使國軍人員於戶政事務所辦理結婚出生或死亡登記時，即可同步通報，以利快速獲撥補助款項。" },
+    { no: 96, q: "依國防部暨所屬各機關、部隊加菜金處理作業規定第5條，請簡述團體加菜金支用範圍？", a: "用途限於辦理單位各項團體加菜（獨立辦伙單位者，得納入伙食團帳戶），或辦理單位團體之餐敘及食品、水果、飲料等購置。" },
+    { no: 97, q: "何謂乙種財務代理人？", a: "預算支用單位於其編制人員內，指定適當人員辦理暫付款之收支結報或一般經費支付轉財務單位審核作業者，稱為乙種財務代理人，並受財務單位之業務督導。" },
+    { no: 98, q: "交接程序應由何人完成？但何種情況下可由單位主官指派適合人員代為辦理？", a: "（1）應當事人親自完成。（2）因病卸任、在任病故、或逃匿，未委託代辦交代之人，或已委託代辦交代之人而未按時辦理交代事宜者，由其最高佐理人員代辦交代。" },
+    { no: 99, q: "依預算法第63條，各一級用途別科目間之流用規定為何？", a: "流入數額不得超過原預算數額百分之20，流出數額不得超過原預算數額百分之20。" },
+    { no: 100, q: "國軍執行災害防救專案申請行政費補助依據為何？其專案經費運用範圍為何？", a: "係以派遣連級單位（海、空軍比照）定額月支給與為基準，並視救災人數而定，凡救災兵力未達10人次者，加發四分之一個月額度，未達40人次者，加發半個月額度，逾40人次以上者，加發一個月額度，其運用範圍為臨時購置或雜項支出等項目。" }
 ];
 
-let masteredSet = new Set(JSON.parse(localStorage.getItem('mastered_questions') || '[]'));
+let masteredSet = new Set(JSON.parse(localStorage.getItem('fin_mastered_questions_v3') || '[]'));
+let wrongStats = JSON.parse(localStorage.getItem('fin_wrong_stats_v3') || '{}');
+let cardLastPositions = JSON.parse(localStorage.getItem('card_last_positions_v3') || '{}');
 
 let quizList = [];
 let userAnswers = [];
@@ -597,10 +565,55 @@ let activeMatchRule = 'smart';
 let isQuizActive = false;
 let currentBankFilter = 'all';
 
-function saveMastered() {
-    localStorage.setItem('mastered_questions', JSON.stringify([...masteredSet]));
-    renderMasteredStat();
+// 字卡背誦專屬變數
+let cardList = [];
+let cardIndex = 0;
+let isCardFlipped = false;
+let isReverseMode = false;
+let currentCardScope = 'unmastered';
+let autoPlayInterval = null;
+let isAnimating = false;
+let suppressClickUntil = 0;
+
+function saveAllData() {
+    localStorage.setItem('fin_mastered_questions_v3', JSON.stringify([...masteredSet]));
+    localStorage.setItem('fin_wrong_stats_v3', JSON.stringify(wrongStats));
+    localStorage.setItem('card_last_positions_v3', JSON.stringify(cardLastPositions));
+    renderDashboard();
     checkAllMasteredCelebration();
+}
+
+function updateStudyStreak() {
+    const today = new Date().toISOString().slice(0, 10);
+    let streakData = JSON.parse(localStorage.getItem('study_streak_v3') || '{"lastDate":"","days":0}');
+    if (streakData.lastDate !== today) {
+        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        if (streakData.lastDate === yesterday) {
+            streakData.days++;
+        } else if (streakData.lastDate !== today) {
+            streakData.days = 1;
+        }
+        streakData.lastDate = today;
+        localStorage.setItem('study_streak_v3', JSON.stringify(streakData));
+    }
+    const badge = document.getElementById('study-streak-badge');
+    if (badge) badge.textContent = `🔥 連續學習 ${streakData.days} 天`;
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('dark_mode_enabled_v3', document.body.classList.contains('dark-mode'));
+}
+
+if (localStorage.getItem('dark_mode_enabled_v3') === 'true') {
+    document.body.classList.add('dark-mode');
+}
+
+function renderDashboard() {
+    const totalM = masteredSet.size;
+    const elTotal = document.getElementById('mastered-stat-text');
+    if (elTotal) elTotal.textContent = `已標記熟記：${totalM} 題 / 共 ${RAW_QUESTIONS.length} 題`;
+    updateStudyStreak();
 }
 
 function checkAllMasteredCelebration() {
@@ -626,274 +639,31 @@ function closeMasteredSuccessModal() {
     renderPauseBanner();
 }
 
-function renderMasteredStat() {
-    const el = document.getElementById('mastered-stat-text');
-    if (el) el.textContent = `已標記熟記：${masteredSet.size} 題 / 共 ${RAW_QUESTIONS.length} 題`;
-    
-    const unmasteredTotal = RAW_QUESTIONS.length - masteredSet.size;
-    const labelCount = document.getElementById('label-count');
-    const inputCount = document.getElementById('input-count');
-    if (labelCount && inputCount) {
-        labelCount.textContent = `本次測驗題數（排除已熟記後共 ${unmasteredTotal} 題）：`;
-        inputCount.max = unmasteredTotal;
-        if (parseInt(inputCount.value, 10) > unmasteredTotal) {
-            inputCount.value = Math.max(1, unmasteredTotal);
-        }
-    }
-}
-
-function resetMastered() {
-    if (confirm("確定要重設所有已熟記的題目標記嗎？")) {
+function resetAllData() {
+    if (confirm("確定要重設所有已熟記標記與錯題統計數據嗎？")) {
         masteredSet.clear();
-        saveMastered();
-        if (!document.getElementById('view-mastered').classList.contains('hidden')) {
-            renderMasteredList();
-        }
+        wrongStats = {};
+        cardLastPositions = {};
+        saveAllData();
+        renderDashboard();
+        if (!document.getElementById('view-mastered').classList.contains('hidden')) renderMasteredList();
     }
-}
-
-function toggleMastered(isChecked) {
-    if (!quizList[currentIndex]) return;
-    const qId = quizList[currentIndex].id;
-    if (isChecked) {
-        masteredSet.add(qId);
-    } else {
-        masteredSet.delete(qId);
-    }
-    saveMastered();
-    const skipBtn = document.getElementById('btn-skip');
-    const record = userAnswers[currentIndex];
-    if (isChecked && (!record || !record.isSubmitted)) {
-        skipBtn.classList.remove('hidden');
-    } else {
-        skipBtn.classList.add('hidden');
-    }
-}
-
-function toggleMasteredFromBank(qId, isChecked) {
-    if (isChecked) {
-        masteredSet.add(qId);
-    } else {
-        masteredSet.delete(qId);
-    }
-    saveMastered();
-    renderMasteredList();
-}
-
-function switchBankFilter(filter) {
-    currentBankFilter = filter;
-    document.getElementById('tab-all').className = `filter-tab ${filter === 'all' ? 'active' : ''}`;
-    document.getElementById('tab-unmastered').className = `filter-tab ${filter === 'unmastered' ? 'active' : ''}`;
-    document.getElementById('tab-mastered').className = `filter-tab ${filter === 'mastered' ? 'active' : ''}`;
-    renderMasteredList();
-}
-
-function showMasteredList() {
-    document.getElementById('view-setup').classList.add('hidden');
-    document.getElementById('view-quiz').classList.add('hidden');
-    document.getElementById('view-result').classList.add('hidden');
-    document.getElementById('view-mastered').classList.remove('hidden');
-    renderMasteredList();
-}
-
-function hideMasteredList() {
-    document.getElementById('view-mastered').classList.add('hidden');
-    document.getElementById('view-setup').classList.remove('hidden');
-    handleModeChange();
-    renderMasteredStat();
-    renderPauseBanner();
-}
-
-function renderMasteredList() {
-    const container = document.getElementById('mastered-list-container');
-    
-    let displayList = RAW_QUESTIONS;
-    if (currentBankFilter === 'mastered') {
-        displayList = RAW_QUESTIONS.filter(q => masteredSet.has(q.id));
-    } else if (currentBankFilter === 'unmastered') {
-        displayList = RAW_QUESTIONS.filter(q => !masteredSet.has(q.id));
-    }
-
-    document.getElementById('tab-all').textContent = `全部 (90)`;
-    document.getElementById('tab-unmastered').textContent = `僅未熟記 (${90 - masteredSet.size})`;
-    document.getElementById('tab-mastered').textContent = `僅已熟記 (${masteredSet.size})`;
-
-    if (displayList.length === 0) {
-        container.innerHTML = `<div class="empty-state">目前此篩選條件下沒有任何題目！</div>`;
-        return;
-    }
-
-    const diffMap = {
-        easy: { label: "易", class: "diff-tag-easy" },
-        mid: { label: "中", class: "diff-tag-mid" },
-        hard: { label: "難", class: "diff-tag-hard" }
-    };
-
-    container.innerHTML = displayList.map(item => {
-        const isM = masteredSet.has(item.id);
-        return `
-            <div class="mastered-item-card ${isM ? 'is-mastered' : ''}">
-                <div class="mastered-item-header">
-                    <div>
-                        <span class="diff-tag ${diffMap[item.diff].class}">${diffMap[item.diff].label}</span>
-                        <strong style="margin-left: 0.35rem; font-size: 0.9rem; color: var(--text-muted);">題號 #${item.id}</strong>
-                    </div>
-                    <label class="mastered-toggle" style="font-size: 0.85rem; color: ${isM ? 'var(--primary)' : 'var(--text-muted)'}; font-weight: ${isM ? '600' : 'normal'};">
-                        <input type="checkbox" ${isM ? 'checked' : ''} onchange="toggleMasteredFromBank(${item.id}, this.checked)">
-                        <span>這題我已背熟</span>
-                    </label>
-                </div>
-                <div class="mastered-item-q">${escapeHtml(item.q)}</div>
-                <div class="mastered-item-a"><strong>標準答案：</strong>${escapeHtml(item.a)}</div>
-            </div>
-        `;
-    }).join('');
-}
-
-function pauseAndGoHome() {
-    document.getElementById('view-quiz').classList.add('hidden');
-    document.getElementById('view-setup').classList.remove('hidden');
-    renderPauseBanner();
-    renderMasteredStat();
-}
-
-function renderPauseBanner() {
-    const banner = document.getElementById('panel-paused-quiz');
-    if (isQuizActive && quizList.length > 0) {
-        const desc = document.getElementById('pause-status-desc');
-        const ruleText = activeMatchRule === 'exact' ? '嚴格模式' : '寬鬆模式';
-        const doneCount = userAnswers.filter(a => a && a.isSubmitted).length;
-        const currentCorrect = userAnswers.filter(a => a && a.isSubmitted && a.isCorrect).length;
-        desc.textContent = `進行中進度：當前第 ${currentIndex + 1} 題 / 共 ${quizList.length} 題（已作答 ${doneCount} 題，答對 ${currentCorrect} 題） ｜ 判定方式：${ruleText}`;
-        banner.classList.remove('hidden');
-    } else {
-        banner.classList.add('hidden');
-    }
-}
-
-function resumeQuiz() {
-    if (!isQuizActive || quizList.length === 0) return;
-    document.getElementById('view-setup').classList.add('hidden');
-    document.getElementById('view-quiz').classList.remove('hidden');
-    showQuestion();
-}
-
-function discardQuiz() {
-    if (confirm("確定要放棄當前的測驗進度嗎？")) {
-        isQuizActive = false;
-        quizList = [];
-        userAnswers = [];
-        currentIndex = 0;
-        renderPauseBanner();
-    }
-}
-
-function startNewQuizClick() {
-    if (isQuizActive) {
-        if (!confirm("目前有尚未完成的測驗進度，開始新測驗將覆蓋當前進度，確定開始嗎？")) {
-            return;
-        }
-    }
-    startQuiz();
-}
-
-function cleanSmartText(s) {
-    return s ? s.replace(/[\s\(\)（）\.,，。、:：;；—\-_【】「」『』]/g, '')
-                .replace(/[0-9０-９]/g, '')
-                .toLowerCase()
-                .trim() : '';
-}
-
-function normalizeExactText(s) {
-    if (!s) return '';
-    return s.replace(/\s+/g, '')
-            .replace(/[（\(\[\{【]/g, '（')
-            .replace(/[）\)\]\}】]/g, '）')
-            .replace(/[,，]/g, '，')
-            .replace(/[.。]/g, '。')
-            .replace(/[:：]/g, '：')
-            .replace(/[;；]/g, '；')
-            .replace(/[、]/g, '、')
-            .replace(/[—\-_]/g, '—')
-            .replace(/[０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0))
-            .trim();
-}
-
-function extractItems(s) {
-    if (!s) return [];
-    return s.split(/(?:[（\(]?\s*\d+\s*[）\.\、\)]|\n+)/)
-            .map(item => cleanSmartText(item))
-            .filter(item => item.length > 0);
-}
-
-function checkSmartMatch(userRaw, standardRaw) {
-    const cleanU = cleanSmartText(userRaw);
-    const cleanS = cleanSmartText(standardRaw);
-    if (!cleanU) return false;
-    if (cleanU === cleanS) return true;
-
-    const standardItems = extractItems(standardRaw);
-    if (standardItems.length > 1) {
-        let remainingUserText = cleanU;
-        let allMatched = true;
-
-        for (const item of standardItems) {
-            const idx = remainingUserText.indexOf(item);
-            if (idx === -1) {
-                allMatched = false;
-                break;
-            }
-            remainingUserText = remainingUserText.slice(0, idx) + remainingUserText.slice(idx + item.length);
-        }
-
-        if (allMatched && remainingUserText.length <= 2) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function checkExactMatch(userRaw, standardRaw) {
-    const normU = normalizeExactText(userRaw);
-    const normS = normalizeExactText(standardRaw);
-    return (normU.length > 0 && normU === normS);
 }
 
 function handleModeChange() {
     const mode = document.getElementById('select-mode').value;
-    const pRatio = document.getElementById('panel-ratio');
-    const pCount = document.getElementById('panel-count');
+    const pRandom = document.getElementById('panel-random');
     const pCustom = document.getElementById('panel-custom');
 
-    pRatio.classList.add('hidden');
-    pCount.classList.add('hidden');
-    pCustom.classList.add('hidden');
+    if (pRandom) pRandom.classList.add('hidden');
+    if (pCustom) pCustom.classList.add('hidden');
 
-    if (mode === 'ratio') {
-        pRatio.classList.remove('hidden');
-        updateTotalCount();
-    } else if (mode === 'all') {
-        pCount.classList.remove('hidden');
+    if (mode === 'random-all') {
+        if (pRandom) pRandom.classList.remove('hidden');
         renderMasteredStat();
-    } else if (mode === 'custom') {
-        pCustom.classList.remove('hidden');
+    } else if (mode === 'custom-range') {
+        if (pCustom) pCustom.classList.remove('hidden');
     }
-}
-
-function updateTotalCount() {
-    const easy = parseInt(document.getElementById('input-easy').value, 10) || 0;
-    const mid = parseInt(document.getElementById('input-mid').value, 10) || 0;
-    const hard = parseInt(document.getElementById('input-hard').value, 10) || 0;
-    document.getElementById('ratio-total-hint').textContent = `本次預計測驗：${easy + mid + hard} 題`;
-}
-
-function escapeHtml(str) {
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function getRandomSubarray(arr, size) {
-    const shuffled = [...arr].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, size);
 }
 
 function startQuiz() {
@@ -901,36 +671,26 @@ function startQuiz() {
     const mode = document.getElementById('select-mode').value;
     let selected = [];
 
-    if (mode === 'ratio') {
-        const easyCount = Math.min(Math.max(0, parseInt(document.getElementById('input-easy').value, 10) || 0), 36);
-        const midCount = Math.min(Math.max(0, parseInt(document.getElementById('input-mid').value, 10) || 0), 36);
-        const hardCount = Math.min(Math.max(0, parseInt(document.getElementById('input-hard').value, 10) || 0), 18);
-
-        const easyPool = RAW_QUESTIONS.filter(x => x.diff === 'easy');
-        const midPool = RAW_QUESTIONS.filter(x => x.diff === 'mid');
-        const hardPool = RAW_QUESTIONS.filter(x => x.diff === 'hard');
-
-        selected = [
-            ...getRandomSubarray(easyPool, easyCount),
-            ...getRandomSubarray(midPool, midCount),
-            ...getRandomSubarray(hardPool, hardCount)
-        ];
-    } else if (mode === 'all') {
-        const unmasteredPool = RAW_QUESTIONS.filter(x => !masteredSet.has(x.id));
+    if (mode === 'preset-1-50') {
+        selected = RAW_QUESTIONS.filter(q => q.no >= 1 && q.no <= 50);
+    } else if (mode === 'preset-51-100') {
+        selected = RAW_QUESTIONS.filter(q => q.no >= 51 && q.no <= 100);
+    } else if (mode === 'random-all') {
+        const unmasteredPool = RAW_QUESTIONS.filter(x => !masteredSet.has(x.no));
         if (unmasteredPool.length === 0) {
             alert("🎉 所有題目均已標記為熟記！請先清空或調整熟記名單。");
             return;
         }
         const count = Math.min(Math.max(1, parseInt(document.getElementById('input-count').value, 10) || 1), unmasteredPool.length);
         selected = getRandomSubarray(unmasteredPool, count);
-    } else if (mode === 'custom') {
+    } else if (mode === 'custom-range') {
         let start = (parseInt(document.getElementById('custom-start').value, 10) || 1);
-        let end = (parseInt(document.getElementById('custom-end').value, 10) || 90);
+        let end = (parseInt(document.getElementById('custom-end').value, 10) || 100);
         if (start > end) [start, end] = [end, start];
         
-        selected = RAW_QUESTIONS.filter(q => q.id >= start && q.id <= end && !masteredSet.has(q.id));
+        selected = RAW_QUESTIONS.filter(q => q.no >= start && q.no <= end && !masteredSet.has(q.no));
         if (selected.length === 0) {
-            alert(`題號 ${start} 至 ${end} 區間內的題目已全部標記為熟記！`);
+            alert(`第 ${start} 至 ${end} 題區間內的題目已全部標記為熟記！`);
             return;
         }
     }
@@ -943,6 +703,312 @@ function startQuiz() {
     initQuizSession(selected);
 }
 
+/* ========================================================
+   🎴 智慧字卡背誦系統（完整功能整合）
+   ======================================================== */
+function openFlashcardSetup() {
+    document.getElementById('view-setup').classList.add('hidden');
+    document.getElementById('view-quiz').classList.add('hidden');
+    document.getElementById('view-mastered').classList.add('hidden');
+    document.getElementById('view-result').classList.add('hidden');
+    document.getElementById('view-flashcard').classList.remove('hidden');
+    
+    const scope = document.getElementById('select-card-scope').value || 'unmastered';
+    changeCardScope(scope);
+}
+
+function changeCardScope(scope) {
+    currentCardScope = scope;
+    let pool = [];
+    if (scope === 'all') pool = [...RAW_QUESTIONS];
+    else if (scope === 'unmastered') pool = RAW_QUESTIONS.filter(q => !masteredSet.has(q.no));
+    else if (scope === 'part1') pool = RAW_QUESTIONS.filter(q => q.no >= 1 && q.no <= 50);
+    else if (scope === 'part2') pool = RAW_QUESTIONS.filter(q => q.no >= 51 && q.no <= 100);
+
+    if (pool.length === 0) {
+        alert("🎉 此分類無題目，已自動切換至全部總題庫。");
+        document.getElementById('select-card-scope').value = 'all';
+        pool = [...RAW_QUESTIONS];
+    }
+
+    // 💡 嚴格依照題號升冪排序
+    cardList = pool.sort((a, b) => a.no - b.no);
+    
+    const savedIdx = cardLastPositions[scope];
+    cardIndex = (typeof savedIdx === 'number' && savedIdx < cardList.length) ? savedIdx : 0;
+    
+    isCardFlipped = false;
+    renderCardContent();
+}
+
+function renderCardContent() {
+    if (cardList.length === 0) return;
+    const item = cardList[cardIndex];
+    isCardFlipped = false;
+    
+    cardLastPositions[currentCardScope] = cardIndex;
+    localStorage.setItem('card_last_positions_v2', JSON.stringify(cardLastPositions));
+
+    const card = document.getElementById('flashcard-card');
+    const inner = document.getElementById('flashcard-inner');
+    card.style.transition = 'none';
+    card.style.transform = 'translate(0px, 0px) rotate(0deg)';
+    card.style.opacity = '1';
+    inner.classList.remove('is-flipped');
+    document.getElementById('srs-box').classList.add('hidden');
+
+    document.getElementById('card-progress').textContent = `📝 題目 (${cardIndex + 1}/${cardList.length}) (#${item.no})`;
+
+    if (isReverseMode) {
+        currentFrontText = item.a;
+        currentBackText = item.q;
+        document.getElementById('card-front-body').textContent = item.a;
+        document.getElementById('card-back-body').textContent = item.q;
+        document.getElementById('card-back-title').textContent = "💡 回想原題目";
+    } else {
+        currentFrontText = item.q;
+        currentBackText = item.a;
+        document.getElementById('card-front-body').textContent = item.q;
+        document.getElementById('card-back-body').textContent = item.a;
+        document.getElementById('card-back-title').textContent = "💡 標準答案";
+    }
+
+    document.getElementById('chk-card-mastered').checked = masteredSet.has(item.no);
+    document.getElementById('btn-card-prev').disabled = (cardIndex === 0);
+}
+
+function flipCard() {
+    const now = Date.now();
+    if (now < suppressClickUntil) return;
+    suppressClickUntil = now + 250;
+
+    isCardFlipped = !isCardFlipped;
+    const inner = document.getElementById('flashcard-inner');
+    if (isCardFlipped) {
+        inner.classList.add('is-flipped');
+        document.getElementById('srs-box').classList.remove('hidden');
+    } else {
+        inner.classList.remove('is-flipped');
+        document.getElementById('srs-box').classList.add('hidden');
+    }
+}
+
+function rateCard(level) {
+    const item = cardList[cardIndex];
+    if (level === 'hard') {
+        wrongStats[item.no] = (wrongStats[item.no] || 0) + 1;
+        masteredSet.delete(item.no);
+    } else if (level === 'easy') {
+        masteredSet.add(item.no);
+    }
+    saveAllData();
+    nextCard();
+}
+
+function animateSlideTo(direction, onComplete) {
+    const card = document.getElementById('flashcard-card');
+    const destX = (direction === 'left') ? -window.innerWidth * 1.1 : window.innerWidth * 1.1;
+    const rotate = (direction === 'left') ? -15 : 15;
+
+    card.style.transition = 'transform 0.25s ease-in, opacity 0.2s ease';
+    card.style.transform = `translate(${destX}px, 15px) rotate(${rotate}deg)`;
+    card.style.opacity = '0';
+
+    setTimeout(() => {
+        onComplete();
+        const startX = (direction === 'left') ? window.innerWidth * 0.8 : -window.innerWidth * 0.8;
+        card.style.transition = 'none';
+        card.style.transform = `translate(${startX}px, 0px) rotate(${(direction === 'left') ? 8 : -8}deg)`;
+        card.style.opacity = '0';
+
+        requestAnimationFrame(() => {
+            card.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.25s ease';
+            card.style.transform = 'translate(0px, 0px) rotate(0deg)';
+            card.style.opacity = '1';
+        });
+    }, 240);
+}
+
+function prevCard() {
+    if (cardIndex <= 0) return;
+    document.getElementById('srs-box').classList.add('hidden');
+    animateSlideTo('right', () => {
+        cardIndex--;
+        renderCardContent();
+    });
+}
+
+function nextCard() {
+    if (cardIndex < cardList.length - 1) {
+        document.getElementById('srs-box').classList.add('hidden');
+        animateSlideTo('left', () => {
+            cardIndex++;
+            renderCardContent();
+        });
+    } else {
+        alert("🎉 本題庫字卡已全部背誦完畢！");
+        exitFlashcards();
+    }
+}
+
+function toggleCardMastered(isChecked) {
+    if (!cardList[cardIndex]) return;
+    const qNo = cardList[cardIndex].no;
+    if (isChecked) masteredSet.add(qNo);
+    else masteredSet.delete(qNo);
+    saveAllData();
+}
+
+function toggleReverseMode(isChecked) {
+    isReverseMode = isChecked;
+    renderCardContent();
+}
+
+function toggleAutoPlay() {
+    const btn = document.getElementById('btn-autoplay');
+    if (autoPlayInterval) {
+        clearInterval(autoPlayInterval);
+        autoPlayInterval = null;
+        btn.innerHTML = '<span>⏱️ 輪播</span>';
+        btn.classList.remove('active');
+    } else {
+        btn.innerHTML = '<span>⏹️ 停止</span>';
+        btn.classList.add('active');
+        autoPlayInterval = setInterval(() => {
+            if (!isCardFlipped) {
+                flipCard();
+            } else {
+                nextCard();
+            }
+        }, 3600);
+    }
+}
+
+function exitFlashcards() {
+    if (autoPlayInterval) toggleAutoPlay();
+    document.getElementById('view-flashcard').classList.add('hidden');
+    document.getElementById('view-setup').classList.remove('hidden');
+    renderDashboard();
+    handleModeChange();
+    renderPauseBanner();
+}
+
+function speakText(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'zh-TW';
+        utter.rate = 1.0;
+        window.speechSynthesis.speak(utter);
+    } else {
+        alert("您的瀏覽器不支援語音朗讀功能！");
+    }
+}
+
+/* ========================================================
+   👆 觸控與滑鼠拖曳換題手勢
+   ======================================================== */
+const cardEl = document.getElementById('flashcard-card');
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+let currentX = 0;
+let currentY = 0;
+let isMovedSignificantly = false;
+
+function onDragStart(clientX, clientY) {
+    isDragging = true;
+    isMovedSignificantly = false;
+    startX = clientX;
+    startY = clientY;
+    currentX = clientX;
+    currentY = clientY;
+    cardEl.style.transition = 'none';
+}
+
+function onDragMove(clientX, clientY) {
+    if (!isDragging) return;
+    currentX = clientX;
+    currentY = clientY;
+    const deltaX = currentX - startX;
+    const deltaY = currentY - startY;
+
+    if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+        isMovedSignificantly = true;
+    }
+
+    const rotation = deltaX * 0.05;
+    cardEl.style.transform = `translate(${deltaX}px, ${deltaY * 0.25}px) rotate(${rotation}deg)`;
+    cardEl.style.opacity = Math.max(0.4, 1 - Math.abs(deltaX) / (window.innerWidth * 0.9));
+}
+
+function onDragEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    const deltaX = currentX - startX;
+    const deltaY = currentY - startY;
+
+    if (Math.abs(deltaX) > 75 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+        suppressClickUntil = Date.now() + 350;
+        document.getElementById('srs-box').classList.add('hidden');
+        if (deltaX < 0) {
+            if (cardIndex < cardList.length - 1) {
+                animateSlideTo('left', () => { cardIndex++; renderCardContent(); });
+            } else {
+                alert("🎉 本題庫字卡已全部背誦完畢！");
+                exitFlashcards();
+            }
+        } else {
+            if (cardIndex > 0) {
+                animateSlideTo('right', () => { cardIndex--; renderCardContent(); });
+            } else {
+                springBack();
+            }
+        }
+    } else {
+        if (!isMovedSignificantly) {
+            flipCard();
+        } else {
+            springBack();
+        }
+    }
+}
+
+function springBack() {
+    cardEl.style.transition = 'transform 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.25s ease';
+    cardEl.style.transform = 'translate(0px, 0px) rotate(0deg)';
+    cardEl.style.opacity = '1';
+}
+
+cardEl.addEventListener('touchstart', (e) => {
+    if (e.target.closest('button')) return;
+    onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+
+cardEl.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+
+cardEl.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    onDragEnd();
+});
+
+cardEl.addEventListener('mousedown', (e) => {
+    if (e.target.closest('button')) return;
+    onDragStart(e.clientX, e.clientY);
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (isDragging) onDragMove(e.clientX, e.clientY);
+});
+
+window.addEventListener('mouseup', () => {
+    if (isDragging) onDragEnd();
+});
+
+// 殘留函數相容性對應
 function initQuizSession(questions) {
     quizList = questions.sort(() => 0.5 - Math.random());
     userAnswers = new Array(quizList.length).fill(null);
@@ -965,223 +1031,19 @@ function saveCurrentDraft(val) {
     }
 }
 
-function showQuestion() {
-    const item = quizList[currentIndex];
-    const record = userAnswers[currentIndex];
-
-    document.getElementById('quiz-progress').textContent = `第 ${currentIndex + 1} 題 / 共 ${quizList.length} 題`;
-    document.getElementById('quiz-question').textContent = item.q;
-    
-    const btnPrev = document.getElementById('btn-prev');
-    btnPrev.disabled = (currentIndex === 0);
-
-    const isMastered = masteredSet.has(item.id);
-    const chk = document.getElementById('chk-mastered');
-    chk.checked = isMastered;
-
-    const skipBtn = document.getElementById('btn-skip');
-    const ansArea = document.getElementById('quiz-answer');
-    const submitBtn = document.getElementById('btn-submit');
-    const nextBtn = document.getElementById('btn-next');
-    const feedback = document.getElementById('quiz-feedback');
-
-    if (activeMatchRule === 'exact') {
-        ansArea.placeholder = "請輸入完整標準答案（一字不漏模式：須包含編號、順序與標點，全半形皆可）...";
-    } else {
-        ansArea.placeholder = "請輸入答案（寬鬆模式：免標點、免編號、順序不拘皆可自動判定）...";
-    }
-
-    if (record && record.isSubmitted) {
-        ansArea.value = record.userAnswer || '';
-        ansArea.disabled = true;
-        submitBtn.classList.add('hidden');
-        skipBtn.classList.add('hidden');
-        nextBtn.classList.remove('hidden');
-        
-        feedback.className = `feedback ${record.isCorrect ? 'correct' : 'wrong'}`;
-        feedback.innerHTML = record.feedbackHtml;
-        feedback.classList.remove('hidden');
-    } else {
-        ansArea.value = (record && record.userAnswer) ? record.userAnswer : '';
-        ansArea.disabled = false;
-        submitBtn.classList.remove('hidden');
-        nextBtn.classList.add('hidden');
-        feedback.className = 'feedback hidden';
-        feedback.innerHTML = '';
-        
-        if (isMastered) {
-            skipBtn.classList.remove('hidden');
-        } else {
-            skipBtn.classList.add('hidden');
-        }
-        ansArea.focus();
-    }
-}
-
 function prevQuestion() {
-    if (currentIndex > 0) {
-        currentIndex--;
-        showQuestion();
-    }
-}
-
-function skipMasteredQuestion() {
-    userAnswers[currentIndex] = {
-        userAnswer: '(已熟記跳過)',
-        isSubmitted: true,
-        isCorrect: true,
-        isSkipped: true,
-        feedbackHtml: `<div class="feedback-title">⏭️ 此題已標記熟記並直接略過</div>`
-    };
-    nextQuestion();
-}
-
-function computeDiff(expected, actual) {
-    const m = expected.length, n = actual.length;
-    const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-
-    for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-            if (expected[i - 1] === actual[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
-            else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-        }
-    }
-
-    let i = m, j = n;
-    let standardDiff = [];
-    let userDiff = [];
-
-    while (i > 0 || j > 0) {
-        if (i > 0 && j > 0 && expected[i - 1] === actual[j - 1]) {
-            standardDiff.unshift(escapeHtml(expected[i - 1]));
-            userDiff.unshift(escapeHtml(actual[j - 1]));
-            i--; j--;
-        } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-            userDiff.unshift(`<span class="diff-del" title="多打/打錯">${escapeHtml(actual[j - 1])}</span>`);
-            j--;
-        } else {
-            standardDiff.unshift(`<span class="diff-ins" title="漏掉/打錯">${escapeHtml(expected[i - 1])}</span>`);
-            i--;
-        }
-    }
-
-    return { standardHtml: standardDiff.join(''), userHtml: userDiff.join('') };
-}
-
-function submitAnswer() {
-    const rawU = document.getElementById('quiz-answer').value;
-    const item = quizList[currentIndex];
-    const rawS = item.a;
-    const feedback = document.getElementById('quiz-feedback');
-    
-    let isCorrect = false;
-    if (activeMatchRule === 'exact') {
-        isCorrect = checkExactMatch(rawU, rawS);
-    } else {
-        isCorrect = checkSmartMatch(rawU, rawS);
-    }
-
-    let feedbackHtmlContent = '';
-
-    if (isCorrect) {
-        feedback.className = 'feedback correct';
-        feedbackHtmlContent = `
-            <div class="feedback-title">✅ 完全正確！${activeMatchRule === 'exact' ? '（一字不漏完全符合）' : '（要點齊全）'}</div>
-            <div style="font-weight: 600; margin-top: 0.5rem;">【標準答案】：</div>
-            <div class="diff-view">${rawS}</div>
-        `;
-    } else {
-        feedback.className = 'feedback wrong';
-        let diff;
-        if (activeMatchRule === 'exact') {
-            diff = computeDiff(normalizeExactText(rawS), normalizeExactText(rawU));
-        } else {
-            diff = computeDiff(cleanSmartText(rawS), cleanSmartText(rawU));
-        }
-
-        feedbackHtmlContent = `
-            <div class="feedback-title">❌ 答案有誤（${activeMatchRule === 'exact' ? '一字不漏比對未完全吻合' : '要點缺漏或不正確'}）</div>
-            <div style="font-weight: 600; margin-top: 0.5rem;">【標準答案】：</div>
-            <div class="diff-view">${rawS}</div>
-            <div style="font-weight: 600; margin-top: 0.5rem;">【缺漏/錯誤比對】：</div>
-            <div class="diff-view">標準要點：${diff.standardHtml}<br>您的作答：${diff.userHtml}</div>
-        `;
-    }
-
-    userAnswers[currentIndex] = {
-        userAnswer: rawU,
-        isSubmitted: true,
-        isCorrect: isCorrect,
-        isSkipped: false,
-        feedbackHtml: feedbackHtmlContent
-    };
-
-    feedback.innerHTML = feedbackHtmlContent;
-    feedback.classList.remove('hidden');
-
-    document.getElementById('quiz-answer').disabled = true;
-    document.getElementById('btn-submit').classList.add('hidden');
-    document.getElementById('btn-skip').classList.add('hidden');
-    document.getElementById('btn-next').classList.remove('hidden');
+    if (currentIndex > 0) { currentIndex--; showQuestion(); }
 }
 
 function nextQuestion() {
     currentIndex++;
-    if (currentIndex < quizList.length) {
-        showQuestion();
-    } else {
-        showResult();
-    }
+    if (currentIndex < quizList.length) showQuestion();
+    else showResult();
 }
 
-function showResult() {
-    isQuizActive = false;
-    document.getElementById('view-quiz').classList.add('hidden');
-    document.getElementById('view-result').classList.remove('hidden');
-
-    const total = quizList.length;
-    let actualAttempts = 0;
-    let correctCount = 0;
-    let skippedCount = 0;
-
-    userAnswers.forEach((ans) => {
-        if (ans && ans.isSubmitted) {
-            if (ans.isSkipped) {
-                skippedCount++;
-            } else {
-                actualAttempts++;
-                if (ans.isCorrect) correctCount++;
-            }
-        }
-    });
-
-    const rate = actualAttempts > 0 ? Math.round((correctCount / actualAttempts) * 100) : 0;
-    
-    document.getElementById('res-rate').textContent = `${rate}%`;
-    document.getElementById('res-detail').innerHTML = `
-        實際作答 <strong>${actualAttempts}</strong> 題${skippedCount > 0 ? ` ｜ 熟記跳過 <strong>${skippedCount}</strong> 題` : ''}<br>
-        答對 <strong>${correctCount}</strong> 題 ｜ 答錯 <strong>${actualAttempts - correctCount}</strong> 題<br>
-        <span style="font-size:0.85rem; color: var(--text-muted);">（判定規則：${activeMatchRule === 'exact' ? '嚴格模式' : '寬鬆模式'}）</span>
-    `;
-
-    const unmasteredWrong = [];
-    userAnswers.forEach((ans, idx) => {
-        if (ans && ans.isSubmitted && !ans.isCorrect && !ans.isSkipped) {
-            const qObj = quizList[idx];
-            if (!masteredSet.has(qObj.id)) {
-                unmasteredWrong.push(qObj);
-            }
-        }
-    });
-
-    const retryBtn = document.getElementById('btn-retry-unmastered');
-    if (unmasteredWrong.length > 0) {
-        retryBtn.textContent = `複習本次錯題（共 ${unmasteredWrong.length} 題未熟記）`;
-        retryBtn.classList.remove('hidden');
-        retryBtn.onclick = () => initQuizSession(unmasteredWrong);
-    } else {
-        retryBtn.classList.add('hidden');
-    }
+function skipMasteredQuestion() {
+    userAnswers[currentIndex] = { userAnswer: '(已熟記跳過)', isSubmitted: true, isCorrect: true, isSkipped: true, feedbackHtml: `<div class="feedback-title">⏭️ 此題已標記熟記並直接略過</div>` };
+    nextQuestion();
 }
 
 function restartQuiz() {
@@ -1196,6 +1058,7 @@ function restartQuiz() {
 renderMasteredStat();
 handleModeChange();
 renderPauseBanner();
+renderDashboard();
 </script>
 </body>
 </html>
