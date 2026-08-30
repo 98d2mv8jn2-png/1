@@ -180,7 +180,6 @@
             height: 340px;
             margin: 0.5rem 0 1rem 0;
             perspective: 1200px;
-            touch-action: pan-y;
         }
         .flashcard {
             width: 100%;
@@ -189,11 +188,10 @@
             transform-style: preserve-3d;
             border-radius: 16px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            cursor: grab;
+            cursor: pointer;
             will-change: transform;
             transform-origin: center center;
         }
-        .flashcard:active { cursor: grabbing; }
         .flashcard-inner {
             width: 100%;
             height: 100%;
@@ -201,7 +199,6 @@
             transform-style: preserve-3d;
             transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
             border-radius: 16px;
-            pointer-events: none; /* 讓事件直接穿透至外層 flashcard 與 face，避免雙重觸發 */
             will-change: transform;
         }
         .flashcard-inner.is-flipped { transform: rotateY(180deg); }
@@ -219,7 +216,6 @@
             box-sizing: border-box;
             border: 2px solid var(--border);
             background-color: var(--card-bg);
-            pointer-events: auto;
             transform: translateZ(0);
         }
         .flashcard-front { border-color: #93c5fd; }
@@ -460,14 +456,14 @@
                             </div>
                         </div>
                         <div class="flashcard-body" id="card-front-body"></div>
-                        <div class="flashcard-hint">👆 點擊卡片翻面 ｜ 👈 左右滑動切換 👉</div>
+                        <div class="flashcard-hint">👈 點左側上一題 ｜ 👆 點中間翻面 ｜ 點右側下一題 👉</div>
                     </div>
                     <div class="flashcard-face flashcard-back">
                         <div class="flashcard-side-label">
                             <span id="card-back-title">💡 標準答案</span>
                         </div>
                         <div class="flashcard-body" id="card-back-body" style="font-weight:500;"></div>
-                        <div class="flashcard-hint">👆 點擊卡片翻回正面 ｜ 👈 左右滑動切換 👉</div>
+                        <div class="flashcard-hint">👈 點左側上一題 ｜ 👆 點中間翻面 ｜ 點右側下一題 👉</div>
                     </div>
                 </div>
             </div>
@@ -989,13 +985,6 @@ function renderCardContent() {
     cardLastPositions[currentCardScope] = cardIndex;
     localStorage.setItem('card_last_positions_nco_general', JSON.stringify(cardLastPositions));
 
-    const card = document.getElementById('flashcard-card');
-    if (card) {
-        card.style.transition = 'none';
-        card.style.transform = 'translate(0px, 0px) rotate(0deg)';
-        card.style.opacity = '1';
-    }
-
     const inner = document.getElementById('flashcard-inner');
     if (inner) inner.classList.remove('is-flipped');
     const srs = document.getElementById('srs-box');
@@ -1045,36 +1034,10 @@ function flipCard() {
     }
 }
 
-function animateSlideTo(direction, onComplete) {
-    const card = document.getElementById('flashcard-card');
-    if (!card) { onComplete(); return; }
-    const destX = (direction === 'left') ? -window.innerWidth * 1.1 : window.innerWidth * 1.1;
-    
-    card.style.transition = 'transform 0.18s ease-out, opacity 0.15s ease-out';
-    card.style.transform = `translate(${destX}px, 0px) rotate(${direction === 'left' ? -6 : 6}deg)`;
-    card.style.opacity = '0';
-
-    setTimeout(() => {
-        onComplete();
-        const startX = (direction === 'left') ? window.innerWidth * 0.6 : -window.innerWidth * 0.6;
-        card.style.transition = 'none';
-        card.style.transform = `translate(${startX}px, 0px) rotate(${direction === 'left' ? 4 : -4}deg)`;
-        card.style.opacity = '0';
-
-        requestAnimationFrame(() => {
-            card.style.transition = 'transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.2), opacity 0.15s ease-out';
-            card.style.transform = 'translate(0px, 0px) rotate(0deg)';
-            card.style.opacity = '1';
-        });
-    }, 180);
-}
-
 function nextCard() {
     if (cardIndex < cardList.length - 1) {
-        animateSlideTo('left', () => {
-            cardIndex++;
-            renderCardContent();
-        });
+        cardIndex++;
+        renderCardContent();
     } else {
         alert("🎉 本題庫字卡已全部背誦完畢！");
         exitFlashcards();
@@ -1083,10 +1046,8 @@ function nextCard() {
 
 function prevCard() {
     if (cardIndex > 0) {
-        animateSlideTo('right', () => {
-            cardIndex--;
-            renderCardContent();
-        });
+        cardIndex--;
+        renderCardContent();
     }
 }
 
@@ -1096,99 +1057,31 @@ function exitFlashcards() {
     renderDashboard();
 }
 
-/* 👆 左右物理滑動手勢監聽（防止子元素事件冒泡造成雙重觸發） */
-let isDragging = false;
-let startX = 0;
-let startY = 0;
-let currentX = 0;
-let currentY = 0;
-
-function setupSwipeGestures() {
+/* 👆 字卡區域點擊控制：左側上一題、右側下一題、中間翻面 */
+function setupCardClickNavigation() {
     const cardEl = document.getElementById('flashcard-card');
     if (!cardEl) return;
 
-    function handleStart(x, y) {
-        isDragging = true;
-        startX = x;
-        startY = y;
-        currentX = x;
-        currentY = y;
-        cardEl.style.transition = 'none';
-    }
+    cardEl.addEventListener('click', (e) => {
+        // 若點擊到按鈕等元件則不處理
+        if (e.target.closest('button') || e.target.closest('input')) return;
 
-    function handleMove(x, y) {
-        if (!isDragging) return;
-        currentX = x;
-        currentY = y;
-        const deltaX = currentX - startX;
-        const deltaY = currentY - startY;
+        const rect = cardEl.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const cardWidth = rect.width;
 
-        const rotation = deltaX * 0.03;
-        cardEl.style.transform = `translate(${deltaX}px, ${deltaY * 0.15}px) rotate(${rotation}deg)`;
-        cardEl.style.opacity = Math.max(0.4, 1 - Math.abs(deltaX) / (window.innerWidth * 0.8));
-    }
-
-    function handleEnd() {
-        if (!isDragging) return;
-        isDragging = false;
-        const deltaX = currentX - startX;
-        const deltaY = currentY - startY;
-        const dragDist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-        if (dragDist < 10) {
-            springBack();
+        // 左側 25% 區域 -> 上一題
+        if (clickX < cardWidth * 0.25) {
+            prevCard();
+        } 
+        // 右側 25% 區域 -> 下一題
+        else if (clickX > cardWidth * 0.75) {
+            nextCard();
+        } 
+        // 中間 50% 區域 -> 翻面
+        else {
             flipCard();
-            return;
         }
-
-        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
-            if (deltaX < 0) {
-                nextCard();
-            } else {
-                if (cardIndex > 0) {
-                    prevCard();
-                } else {
-                    springBack();
-                }
-            }
-        } else {
-            springBack();
-        }
-    }
-
-    function springBack() {
-        cardEl.style.transition = 'transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.15s ease';
-        cardEl.style.transform = 'translate(0px, 0px) rotate(0deg)';
-        cardEl.style.opacity = '1';
-    }
-
-    // 統一使用單一監聽器並透過 stopPropagation 確保只觸發一次
-    cardEl.addEventListener('touchstart', (e) => {
-        if (e.target.closest('button')) return;
-        handleStart(e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: true });
-
-    cardEl.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        handleMove(e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: true });
-
-    cardEl.addEventListener('touchend', (e) => {
-        if (e.target.closest('button')) return;
-        handleEnd();
-    });
-
-    cardEl.addEventListener('mousedown', (e) => {
-        if (e.target.closest('button')) return;
-        handleStart(e.clientX, e.clientY);
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (isDragging) handleMove(e.clientX, e.clientY);
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (isDragging) handleEnd();
     });
 }
 
@@ -1254,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
     renderStreakBadge();
     handleModeChange();
-    setupSwipeGestures();
+    setupCardClickNavigation();
 
     const bindClick = (id, fn) => {
         const el = document.getElementById(id);
