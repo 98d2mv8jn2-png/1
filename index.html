@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>士官高級班第一階段測驗通識課程測驗系統</title>
+    <title>115年士官高級班第一階段通識課程測驗系統</title>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -207,6 +207,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
             cursor: grab;
             will-change: transform, opacity;
+            transform-origin: center center;
         }
         .flashcard:active { cursor: grabbing; }
         
@@ -305,7 +306,7 @@
             <button class="btn-text-sm" onclick="toggleDarkMode()">🌓 切換夜間護眼模式</button>
             <div style="font-size: 0.8rem; color: var(--text-muted);" id="study-streak-badge">🔥 連續學習 0 天</div>
         </div>
-        <h1>士官高級班第一階段通識課程題庫</h1>
+        <h1>115年士官高級班第一階段通識課程題庫</h1>
         
         <!-- 掌握度儀表板 -->
         <div class="dashboard-grid">
@@ -450,10 +451,9 @@
         <div id="quiz-feedback" class="feedback hidden"></div>
     </div>
 
-    <!-- 🎴 智慧字卡背誦畫面（完整記憶上次進度 + 正反對調 + SRS + 題號排序） -->
+    <!-- 🎴 智慧字卡背誦畫面 -->
     <div id="view-flashcard" class="hidden">
         <div class="quiz-topbar">
-            <!-- 🎴 字卡專屬題庫範圍下拉選單 -->
             <select id="select-card-scope" onchange="changeCardScope(this.value)" style="width:auto; padding:0.3rem 0.6rem; font-size:0.85rem; font-weight:700; border-radius:20px; border-color:#c7d2fe; background:var(--primary-light); color:var(--primary); outline:none; cursor:pointer;">
                 <option value="unmastered" selected>📚 僅未熟記題庫</option>
                 <option value="all">🌐 全部總題庫 (90題)</option>
@@ -636,7 +636,7 @@ const RAW_QUESTIONS = [
     { id: 58, diff: "mid", q: "請分別回答下列問題：\n(1)FREQ鍵在定明（密）及跳明（密）模式下會出現哪種參數？\n(2)37 跳頻機無線電機波道數及預置波道各為多少？", a: "(1)定明（密）：頻率；跳明（密）：跳頻參數。\n(2)波道數：2320個，預置波道數8個。" },
     { id: 59, diff: "mid", q: "何謂後勤判斷？", a: "後勤判斷係依據情報與作戰判斷，分析與研判所有可能影響任務達成之後勤因素，用以判定現有後勤能量能否支援作戰；何案最能獲得後勤有效之支援，並提出克服後勤支援困難之建議。" },
     { id: 60, diff: "mid", q: "術科教學法區分哪幾種？", a: "(1)示範摹擬法、(2)觀摩比較法、(3)學生導師法、(4)統一練習法、(5)相互競賽法、(6)對抗演練法、(7)狀況誘導法、(8)檢查糾正法、(9)個別教學法。" },
-    { id: 61, diff: "mid", q: "陸軍司令部推行「連主檢資訊系統」目的為何？", a: "藉資訊系統驗證各級單位執行成效，並建立自評督管機制，以務實裝備妥善管理。" },
+    { id: 61, diff: "mid", q: "陸軍司令部推行 "連主檢資訊系統" 目的為何？", a: "藉資訊系統驗證各級單位執行成效，並建立自評督管機制，以務實裝備妥善管理。" },
     { id: 62, diff: "mid", q: "敘述主檢系統裝備故障報告功能目的？", a: "提供連隊線上回報裝備故障狀況及停用判定：運用系統向二級廠回報裝備檢查缺失，取代原「保15－002 表」紙本送交二級廠審查作業。" },
     { id: 63, diff: "mid", q: "敘述主檢系統新增損壞查詢功能目的？", a: "運用系統列印當月份新增損壞項目表，由主官批閱管制，取代現行逐份批示保表。" },
     { id: 64, diff: "mid", q: "何謂關鍵行動？", a: "綜合分析作戰之「特定行動」及「推斷行動」之必然性、重要性、時序性與限制因素等後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
@@ -647,7 +647,7 @@ const RAW_QUESTIONS = [
     { id: 69, diff: "mid", q: "在兵棋推演準備工作中，除準備各項推演工具列述我軍部隊及列舉假定事項外，還有那些步驟？", a: "(1)列舉已知重大事件及決心點。(2)決定評估要項。(3)選擇兵棋推演模式。(4)選擇記錄及公布結果方式。" },
     { id: 70, diff: "mid", q: "試問軍品整備範圍為何？", a: "各部隊列管之主（重）要武器裝備，包含戰甲砲車、火砲、輕、重兵器，輪型車輛（軍、民用、特種）、光學裝備、工兵裝備、通信裝備、化學裝備、軍醫裝備等。" },
     { id: 71, diff: "mid", q: "偽裝之定義？", a: "軍事偽裝，即為隱藏自己，欺騙、引誘及迷惑敵人所採取之各種隱真示假的技術與戰術作為。" },
-    { id: 72, diff: "mid", q: "作戰地區戰地人文分析應包含哪些？", a: "政治、社會、經濟、心理等因素，對作戰行動、勤務支援及政治作戰，影響甚鉅；從事判斷、下達決心與處置時，均須考慮之。" },
+    { id: 72, diff: "mid", q: "作戰地區戰地人文分析應包含哪些？", a: "政治, 社會, 經濟, 心理等因素，對作戰行動、勤務支援及政治作戰，影響甚鉅；從事判斷、下達決心與處置時，均須考慮之。" },
 
     // ----------------- 難 (18題) -----------------
     { id: 73, diff: "hard", q: "保密十要項為何？", a: "(1)不洩漏秘密。(2)不探聽秘密。(3)不私藏秘密。(4)不記述秘密。(5)不擅入禁區。(6)要妥善秘密資料。(7)要恪遵保密規定。(8)要防範非法竊取。(9)要檢舉洩密事件。(10)要嚴密保密設備。" },
@@ -682,7 +682,6 @@ let isQuizActive = false;
 let isExamMode = false;
 let currentBankFilter = 'all';
 
-// 字卡背誦專屬變數
 let cardList = [];
 let cardIndex = 0;
 let isCardFlipped = false;
@@ -852,7 +851,6 @@ function getSelectedPool() {
     return selected;
 }
 
-// 模糊比對及嚴格比對核心邏輯
 function normalizeExactText(str) {
     return str.replace(/\s+/g, '').replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
 }
@@ -866,7 +864,6 @@ function checkSmartMatch(userStr, stdStr) {
     const cleanU = cleanSmartText(userStr);
     const cleanS = cleanSmartText(stdStr);
     if (!cleanU) return false;
-    // 檢查是否標準答案中的關鍵字都有被涵蓋或高度重疊
     let matchCount = 0;
     for (let char of cleanU) {
         if (cleanS.includes(char)) matchCount++;
@@ -973,8 +970,6 @@ function submitAnswer() {
         wrongStats[item.id] = (wrongStats[item.id] || 0) + 1;
         saveAllData();
     }
-
-    let diff = computeDiff(rawS, rawU);
 
     let feedbackHtmlContent = isCorrect ? `
         <div class="feedback-title">✅ 完全正確！</div>
@@ -1133,7 +1128,7 @@ function restartQuiz() {
 }
 
 /* ========================================================
-   🎴 智慧字卡背誦系統（嚴格照題號排序 + 物理拖曳）
+   🎴 智慧字卡背誦系統（滑動流暢不縮放閃爍）
    ======================================================== */
 let currentFrontText = "";
 let currentBackText = "";
@@ -1164,10 +1159,7 @@ function changeCardScope(scope) {
         pool = [...RAW_QUESTIONS];
     }
 
-    // 💡 嚴格按照題號 (id) 升冪排序排列
     cardList = pool.sort((a, b) => a.id - b.id);
-    
-    // 💡 自動讀取上次看到的進度
     const savedIdx = cardLastPositions[scope];
     cardIndex = (typeof savedIdx === 'number' && savedIdx < cardList.length) ? savedIdx : 0;
     
@@ -1244,24 +1236,24 @@ function rateCard(level) {
     nextCard();
 }
 
+// 💡 修正後的光滑滑動動畫，消除尺寸縮放閃爍
 function animateSlideTo(direction, onComplete) {
     const card = document.getElementById('flashcard-card');
-    const destX = (direction === 'left') ? -window.innerWidth * 1.1 : window.innerWidth * 1.1;
-    const rotate = (direction === 'left') ? -15 : 15;
-
-    card.style.transition = 'transform 0.25s ease-in, opacity 0.2s ease';
-    card.style.transform = `translate(${destX}px, 15px) rotate(${rotate}deg)`;
+    const destX = (direction === 'left') ? -window.innerWidth * 1.2 : window.innerWidth * 1.2;
+    
+    card.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-in';
+    card.style.transform = `translate(${destX}px, 0px) rotate(${direction === 'left' ? -10 : 10}deg)`;
     card.style.opacity = '0';
 
     setTimeout(() => {
         onComplete();
         const startX = (direction === 'left') ? window.innerWidth * 0.8 : -window.innerWidth * 0.8;
         card.style.transition = 'none';
-        card.style.transform = `translate(${startX}px, 0px) rotate(${(direction === 'left') ? 8 : -8}deg)`;
+        card.style.transform = `translate(${startX}px, 0px) rotate(${direction === 'left' ? 8 : -8}deg)`;
         card.style.opacity = '0';
 
         requestAnimationFrame(() => {
-            card.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.25s ease';
+            card.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.25s ease-out';
             card.style.transform = 'translate(0px, 0px) rotate(0deg)';
             card.style.opacity = '1';
         });
