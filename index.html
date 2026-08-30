@@ -620,7 +620,7 @@ const RAW_QUESTIONS = [
     { id: 64, diff: "mid", q: "何謂關鍵行動？", a: "綜合分析作戰之「特定行動」及「推斷行動」之必然性、重要性、時序性與限制因素等後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
     { id: 65, diff: "mid", q: "研擬行動方案步驟，除分析敵、我相對戰力及研擬各種行動方案選項外，還有那些？", a: "(1)初步規劃行動方案所需兵力及部署。(2)研擬行動方案作戰構想。(3)律定行動方案任務編組。(4)完成行動方案文字敘述及圖解標繪。" },
     { id: 66, diff: "mid", q: "戰場情報準備作業步驟為何？", a: "(1)界定戰場空間。(2)分析作戰地區。(3)評估敵軍威脅。(4)研判敵可能行動。" },
-    { id: 67, diff: "mid", q: "何謂接近路線？", a: "供某一適當大小與類型之部隊，用以通達地形要點或目標之一適切而便利之運動路線。" },
+    { id: 67, diff: "mid", q: "何謂接近路線？", a: "(1)供某一適當大小與類型之部隊，用以通達地形要點或目標之一適切而便利之運動路線。" },
     { id: 68, diff: "mid", q: "共軍合成旅包含哪些單位？", a: "旅部、4個合成營、偵查營、砲兵營、防空營、作戰支援營、勤務保障營共9個營級單位。" },
     { id: 69, diff: "mid", q: "在兵棋推演準備工作中，除準備各項推演工具列述我軍部隊及列舉假定事項外，還有那些步驟？", a: "(1)列舉已知重大事件及決心點。(2)決定評估要項。(3)選擇兵棋推演模式。(4)選擇記錄及公布結果方式。" },
     { id: 70, diff: "mid", q: "試問軍品整備範圍為何？", a: "各部隊列管之主（重）要武器裝備，包含戰甲砲車、火砲、輕、重兵器，輪型車輛（軍、民用、特種）、光學裝備、工兵裝備、通信裝備、化學裝備、軍醫裝備等。" },
@@ -970,11 +970,55 @@ function submitAnswer() {
     const rawS = item.a;
     const feedback = document.getElementById('quiz-feedback');
     
-    const cleanU = rawU.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()v、，。；：\s]/g, '');
-    const cleanS = rawS.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()、，。；：\s]/g, '');
-    let isCorrect = cleanS.includes(cleanU) && cleanU.length >= 2;
+    let isCorrect = false;
+
     if (activeMatchRule === 'exact') {
+        // 🎯 嚴格模式：一字不漏比對
         isCorrect = (rawU.trim() === rawS.trim());
+    } else {
+        // 💡 寬鬆模式：免編號標點、順序不拘、支援點對點交錯對應
+        // 1. 將標準答案與使用者答案拆解成多個要點 (支援以 (1), (2) 或換行 \n 分隔)
+        const parsePoints = (text) => {
+            // 用正規表達式依據括號數字或換行切開各個要點
+            let parts = text.split(/(?=\(\d+\))/g);
+            if (parts.length <= 1) {
+                parts = text.split(/[\n;；]+/);
+            }
+            return parts.map(p => p.replace(/[\d０-９]+\s*[\.．、：:]?/g, '').replace(/[（）()v、，。；：\s]/g, '')).filter(p => p.length >= 2);
+        };
+
+        const standardPoints = parsePoints(rawS);
+        const userCleanFull = rawU.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()v、，。；：\s]/g, '');
+
+        if (standardPoints.length === 0) {
+            // 單句簡答題型
+            const cleanS = rawS.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()、，。；：\s]/g, '');
+            isCorrect = (userCleanFull.length >= 2 && cleanS.includes(userCleanFull));
+        } else {
+            // 多要點題型：檢查每個標準要點是否都有在使用者輸入中出現（順序不拘）
+            // 只要大多數關鍵字點都有對到即可通過
+            let matchedCount = 0;
+            standardPoints.forEach(sp => {
+                // 檢查使用者輸入是否包含此要點的核心字元片段
+                if (userCleanFull.includes(sp) || (sp.length > 3 && userCleanFull.includes(sp.substring(0, Math.floor(sp.length * 0.7))))) {
+                    matchedCount++;
+                } else {
+                    // 嘗試比對要點內的關鍵詞組
+                    let subMatch = false;
+                    for (let i = 0; i < sp.length - 1; i++) {
+                        let chunk = sp.substr(i, 3);
+                        if (userCleanFull.includes(chunk)) {
+                            subMatch = true;
+                            break;
+                        }
+                    }
+                    if (subMatch) matchedCount++;
+                }
+            });
+            // 判定門檻：若要點數小於等於2全部要對，若大於2則對超過一半或符合比例即算對
+            const threshold = standardPoints.length <= 2 ? standardPoints.length : Math.ceil(standardPoints.length * 0.7);
+            isCorrect = (matchedCount >= threshold);
+        }
     }
 
     if (!isCorrect) {
@@ -1066,7 +1110,6 @@ function changeCardScope(scope) {
     if (scope === 'all') pool = [...RAW_QUESTIONS];
     else if (scope === 'unmastered') pool = RAW_QUESTIONS.filter(q => !masteredSet.has(q.id));
     else if (scope === 'srs-smart') {
-        // 🧠 真實 SRS 智慧排序：優先挑選到期複習、錯題最多、或級別最低的題目
         pool = [...RAW_QUESTIONS].sort((a, b) => {
             const srsA = srsProgress[a.id] || { interval: 0, dueDate: 0, reps: 0 };
             const srsB = srsProgress[b.id] || { interval: 0, dueDate: 0, reps: 0 };
@@ -1075,10 +1118,10 @@ function changeCardScope(scope) {
 
             const dueA = (srsA.dueDate <= now) ? 1 : 0;
             const dueB = (srsB.dueDate <= now) ? 1 : 0;
-            if (dueA !== dueB) return dueB - dueA; // 優先到期複習
+            if (dueA !== dueB) return dueB - dueA;
 
-            if (srsA.reps !== srsB.reps) return srsA.reps - srsB.reps; // 複習次數少優先
-            return errB - errA; // 錯題多優先
+            if (srsA.reps !== srsB.reps) return srsA.reps - srsB.reps;
+            return errB - errA;
         });
     }
     else if (scope === 'easy') pool = RAW_QUESTIONS.filter(q => q.diff === 'easy');
@@ -1109,7 +1152,6 @@ function renderCardContent() {
     if (cardList.length === 0) return;
     const item = cardList[cardIndex];
     
-    // 💡 關鍵修正：換頁時強制回到正面並隱藏 SRS 按鈕
     isCardFlipped = false;
     const card = document.getElementById('flashcard-card');
     const inner = document.getElementById('flashcard-inner');
@@ -1177,26 +1219,22 @@ function rateCard(rating) {
     const item = cardList[cardIndex];
     const now = Date.now();
     
-    // 初始化 SRS 紀錄
     if (!srsProgress[item.id]) {
         srsProgress[item.id] = { interval: 1, dueDate: now, reps: 0 };
     }
     const srs = srsProgress[item.id];
 
     if (rating === 'hard') {
-        // 🔴 不會：重置間距，增加錯題統計，並從熟記中移除
         srs.interval = 1;
-        srs.dueDate = now + (1 * 60 * 1000); // 1分鐘後再複習
+        srs.dueDate = now + (1 * 60 * 1000);
         srs.reps = 0;
         wrongStats[item.id] = (wrongStats[item.id] || 0) + 1;
         masteredSet.delete(item.id);
     } else if (rating === 'mid') {
-        // 🟡 模糊：間距微幅增加
         srs.interval = Math.max(1, Math.round(srs.interval * 1.5));
         srs.dueDate = now + (srs.interval * 24 * 60 * 60 * 1000);
         srs.reps += 1;
     } else if (rating === 'easy') {
-        // 🟢 輕鬆：大幅拉長複習間距，並自動標記為熟記
         srs.interval = Math.max(3, srs.interval * 3);
         srs.dueDate = now + (srs.interval * 24 * 60 * 60 * 1000);
         srs.reps += 2;
@@ -1218,7 +1256,7 @@ function animateSlideTo(direction, targetIndex) {
 
     setTimeout(() => {
         cardIndex = targetIndex;
-        renderCardContent(); // 確保換頁時一定呼叫完整重置函式
+        renderCardContent();
 
         const flyInStartX = (direction === 'left') ? window.innerWidth * 1.2 : -window.innerWidth * 1.2;
         card.style.transition = 'none';
@@ -1289,7 +1327,6 @@ function speakText(text) {
     }
 }
 
-/* 👆 字卡區域互動 */
 const cardEl = document.getElementById('flashcard-card');
 let isDragging = false, startX = 0, startY = 0, currentX = 0, currentY = 0, isMoved = false;
 
@@ -1355,7 +1392,6 @@ function springBack() {
     cardEl.style.opacity = '1';
 }
 
-/* 📖 總題庫瀏覽 */
 function showMasteredList() {
     document.getElementById('view-setup').classList.add('hidden');
     document.getElementById('view-mastered').classList.remove('hidden');
@@ -1399,7 +1435,7 @@ function renderMasteredList() {
                     </label>
                 </div>
                 <div style="font-weight:600; font-size:0.95rem; margin-bottom:0.4rem;">${escapeHtml(item.q)}</div>
-                <div style="font-size:0.9rem; color:#334155; background:#f8fafc; padding:0.5rem; border-left:3px solid var(--primary); border-radius:4px; white-space: pre-wrap;">${escapeHtml(item.a)}</div>
+                <div style="font-size:0.9qrem; color:#334155; background:#f8fafc; padding:0.5rem; border-left:3px solid var(--primary); border-radius:4px; white-space: pre-wrap;">${escapeHtml(item.a)}</div>
             </div>
         `;
     }).join('');
@@ -1412,7 +1448,6 @@ function toggleMasteredFromBank(qId, isChecked) {
     renderMasteredList();
 }
 
-/* 🔗 事件綁定 */
 document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
     renderStreakBadge();
