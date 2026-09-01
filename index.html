@@ -440,6 +440,7 @@
         <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
             <button class="btn btn-secondary" id="btn-prev" style="width: auto; min-width: 95px;">⬅️ 上一題</button>
             <button class="btn btn-skip hidden" id="btn-skip">⏭️ 熟記跳過</button>
+            <button class="btn btn-warning" id="btn-show-answer" type="button" style="width: auto; padding: 0.7rem 1rem;" title="偷看正確答案">👀 偷看正確答案</button>
             <button class="btn" id="btn-submit">提交答案</button>
             <button class="btn btn-success hidden" id="btn-next">下一題 ➡️</button>
         </div>
@@ -615,7 +616,7 @@ const RAW_QUESTIONS = [
     { id: 59, diff: "mid", q: "何謂後勤判斷？", a: "後勤判斷係依據情報與作戰判斷，分析與研判所有可能影響任務達成之後勤因素，用以判定現有後勤能量能否支援作戰；何案最能獲得後勤有效之支援，並提出克服後勤支援困難之建議。" },
     { id: 60, diff: "mid", q: "術科教學法區分哪幾種？", a: "(1)示範摹擬法、(2)觀摩比較法、(3)學生導師法、(4)統一練習法、(5)相互競賽法、(6)對抗演練法、(7)狀況誘導法、(8)檢查糾正法、(9)個別教學法。" },
     { id: 61, diff: "mid", q: "陸軍司令部推行 連主檢資訊系統 目的為何？", a: "藉資訊系統驗證各級單位執行成效，並建立自評督管機制，以務實裝備妥善管理。" },
-    { id: 62, diff: "mid", q: "敘述主檢系統裝備故障報告功能目的？", a: "提供連隊線上回報裝備故障狀況及停用判定：運用系統向二級廠回報裝備檢查缺失，取代原「保15－002 表」紙本送交二級廠審查作業。" },
+    { id: 62, diff: "mid", q: "敘述主檢系統裝備故障報告功能目的？", a: "提供連隊線上回報裝備故障狀況及停用判定：運用系統向二級廠回報裝備檢查缺失，取代原專「保15－002 表」紙本送交二級廠審查作業。" },
     { id: 63, diff: "mid", q: "敘述主檢系統新增損壞查詢功能目的？", a: "運用系統列印當月份新增損壞項目表，由主官批閱管制，取代現行逐份批示保表。" },
     { id: 64, diff: "mid", q: "何謂關鍵行動？", a: "綜合分析作戰之「特定行動」及「推斷行動」之必然性、重要性、時序性與限制因素等後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
     { id: 65, diff: "mid", q: "研擬行動方案步驟，除分析敵、我相對戰力及研擬各種行動方案選項外，還有那些？", a: "(1)初步規劃行動方案所需兵力及部署。(2)研擬行動方案作戰構想。(3)律定行動方案任務編組。(4)完成行動方案文字敘述及圖解標繪。" },
@@ -648,7 +649,7 @@ const RAW_QUESTIONS = [
 
 let masteredSet = new Set();
 let wrongStats = {};
-let srsProgress = {}; // 🧠 SRS 間距重複記錄: { qId: { interval: 1, dueDate: 0, reps: 0 } }
+let srsProgress = {}; 
 let cardLastPositions = {};
 let streakData = { days: 0, lastDate: "" };
 
@@ -932,6 +933,7 @@ function showQuestion() {
     if (chkMastered) chkMastered.checked = isMastered;
 
     const skipBtn = document.getElementById('btn-skip');
+    const showAnswerBtn = document.getElementById('btn-show-answer');
     const ansArea = document.getElementById('quiz-answer');
     const submitBtn = document.getElementById('btn-submit');
     const nextBtn = document.getElementById('btn-next');
@@ -941,6 +943,7 @@ function showQuestion() {
         ansArea.value = record.userAnswer || '';
         ansArea.disabled = true;
         if (submitBtn) submitBtn.classList.add('hidden');
+        if (showAnswerBtn) showAnswerBtn.classList.add('hidden');
         if (skipBtn) skipBtn.classList.add('hidden');
         if (nextBtn) nextBtn.classList.remove('hidden');
         if (feedback) {
@@ -952,6 +955,7 @@ function showQuestion() {
         ansArea.value = (record && record.userAnswer) ? record.userAnswer : '';
         ansArea.disabled = false;
         if (submitBtn) submitBtn.classList.remove('hidden');
+        if (showAnswerBtn) showAnswerBtn.classList.remove('hidden');
         if (nextBtn) nextBtn.classList.add('hidden');
         if (feedback) feedback.className = 'feedback hidden';
         
@@ -987,7 +991,7 @@ function submitAnswer() {
         const userCleanFull = rawU.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()v、，。；：\s]/g, '');
 
         if (standardPoints.length === 0) {
-            const cleanS = rawS.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()、，。；：\s]/g, '');
+            const cleanS = rawS.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()v、，。；：\s]/g, '');
             isCorrect = (userCleanFull.length >= 2 && cleanS.includes(userCleanFull));
         } else {
             let matchedCount = 0;
@@ -1037,8 +1041,17 @@ function submitAnswer() {
     }
     document.getElementById('quiz-answer').disabled = true;
     document.getElementById('btn-submit').classList.add('hidden');
+    document.getElementById('btn-show-answer').classList.add('hidden');
     document.getElementById('btn-next').classList.remove('hidden');
     saveQuizSession();
+}
+
+function revealAnswer() {
+    const item = quizList[currentIndex];
+    const ansArea = document.getElementById('quiz-answer');
+    ansArea.value = item.a;
+    saveCurrentDraft(item.a);
+    submitAnswer();
 }
 
 function saveCurrentDraft(val) {
@@ -1077,7 +1090,7 @@ function showResult() {
     document.getElementById('res-detail').innerHTML = `實際作答 <strong>${actualAttempts}</strong> 題 ｜ 答對 <strong>${correctCount}</strong> 題`;
 }
 
-/* 🎴 智慧字卡系統（具備真實 SRS 間距重複演算法） */
+/* 🎴 智慧字卡系統 */
 let currentFrontText = "";
 let currentBackText = "";
 
@@ -1405,7 +1418,6 @@ function renderMasteredList() {
     const container = document.getElementById('mastered-list-container');
     if (!container) return;
 
-    // 動態更新三個標籤的題數備註
     const totalCount = RAW_QUESTIONS.length;
     const masteredCount = RAW_QUESTIONS.filter(q => masteredSet.has(q.id)).length;
     const unmasteredCount = totalCount - masteredCount;
@@ -1467,6 +1479,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindClick('btn-show-mastered', showMasteredList);
     bindClick('btn-hide-mastered', hideMasteredList);
     bindClick('btn-submit', submitAnswer);
+    bindClick('btn-show-answer', revealAnswer);
     bindClick('btn-next', nextQuestion);
     bindClick('btn-prev', () => { if (currentIndex > 0) { currentIndex--; showQuestion(); } });
     bindClick('btn-skip', () => { nextQuestion(); });
