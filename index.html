@@ -101,12 +101,13 @@
         .range-inputs input { width: 50%; }
         .total-hint { font-size: 0.85rem; color: var(--primary); font-weight: 600; margin-top: 0.4rem; text-align: right; }
         
-        /* 標準按鈕規格調整 */
+        /* 標準按鈕規格 */
         .btn {
             display: inline-flex;
             justify-content: center;
             align-items: center;
             gap: 0.35rem;
+            width: 100%;
             padding: 0.7rem 1.25rem;
             background-color: var(--primary);
             color: #fff;
@@ -126,7 +127,7 @@
         .btn-purple { background-color: var(--purple); color: #fff; }
         .btn-danger { background-color: var(--danger); color: #fff; }
         
-        /* 統一高度與外觀的偷看答案按鈕 */
+        /* 重新設計的精緻偷看按鈕：水平並排、大小適中 */
         .btn-peek {
             background-color: #fef3c7;
             color: #b45309;
@@ -140,6 +141,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.35rem;
+            flex: 1;
             transition: all 0.2s;
         }
         .btn-peek:hover {
@@ -480,21 +482,20 @@
         <div class="question-box" id="quiz-question"></div>
         <textarea id="quiz-answer" placeholder="請輸入答案..." oninput="saveCurrentDraft(this.value)"></textarea>
         
-        <!-- 合理排版的按鈕列：左右分群 -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-            <!-- 左側操作群組 -->
-            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-secondary" id="btn-prev" style="width: auto;">⬅️ 上一題</button>
-                <button class="btn btn-skip hidden" id="btn-skip">⏭️ 熟記跳過</button>
-                <!-- 僅已熟記題目顯示的精緻按鈕 -->
+        <!-- 手機友善、整齊對齊的按鈕區塊 -->
+        <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem;">
+            <!-- 上方輔助列：上一題、偷看答案、熟記跳過 -->
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="btn btn-secondary" id="btn-prev" style="flex: 1;">⬅️ 上一題</button>
+                <button class="btn btn-skip hidden" id="btn-skip" style="flex: 1;">⏭️ 熟記跳過</button>
                 <button class="btn-peek hidden" id="btn-peek-answer" type="button" title="偷看正確答案">
                     👀 偷看答案
                 </button>
             </div>
-            <!-- 右側提交/下一題群組 -->
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <button class="btn" id="btn-submit" style="width: auto;">提交答案</button>
-                <button class="btn btn-success hidden" id="btn-next" style="width: auto;">下一題 ➡️</button>
+            <!-- 下方主要動作列：提交答案 / 下一題 (滿版大按鈕) -->
+            <div>
+                <button class="btn" id="btn-submit" style="width: 100%;">提交答案</button>
+                <button class="btn btn-success hidden" id="btn-next" style="width: 100%;">下一題 ➡️</button>
             </div>
         </div>
 
@@ -693,7 +694,7 @@ const RAW_QUESTIONS = [
     { id: 77, diff: "hard", q: "偽裝之基本要求？", a: "(1)掌握敵人偵蒐能力。(2)避免暴露行蹤遭敵偵查。(3)落實偽裝反制偵查。(4)考慮效果，適度偽裝。(5)隱匿企圖減低移防頻率。(6)依需要設置假設施（目標）。(7)避免敵人預判我作戰模式。" },
     { id: 78, diff: "hard", q: "部隊指揮程序中預備命令內容為何？", a: "(1)簡要之敵情。\n(2)任務概要。\n(3)完成作戰準備之時限，接受命令之時間與地點。\n(4)特別指示事項。" },
     { id: 79, diff: "hard", q: "何謂特定行動？推斷行動？關鍵行動？", a: "(1)特定行動：由上級賦予、指派交由本單位執行之任務。(2)推斷行動：係本部就支持「特定行動」達成與全般狀況考量，由單位自行推斷產生者。(3)關鍵行動：綜合分析特定行動與推斷行動之必然性、重要性、時序性與限制因素後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
-    { id: 80, diff: "hard", q: "情報計畫用以分發那些事項之文件？", a: "(1)敵軍情報與作戰地區特性之情報。\n(2)情報需求。\n(3)情報任務之分配。\n(4)部隊管制。\n(5)情報與反情報實施的政策與程序。" },
+    { id: 80, diff: "hard", q: "情報計畫用以分發那些事項之文件？", a: "(1)敵軍情報與作戰地區特性之情報。\n(2)情報需求。(3)情報任務之分配。(4)部隊管制。(5)情報與反情報實施的政策與程序。" },
     { id: 81, diff: "hard", q: "偽裝基本目標識別因素有哪些？", a: "(1)位置。(2)形狀。(3)陰影。(4)表面結構。(5)光澤。(6)色彩。(7)色調。(8)運動。(9)溫度。" },
     { id: 82, diff: "hard", q: "JCATS系統後勤模擬為何？", a: "(1)彈藥及油料補給。(2)裝備維修及撤收。(3)人員後送及治療。(4)後方指揮所之行動。(5)緊急行動之規劃。" },
     { id: 83, diff: "hard", q: "作戰判斷之本文，包括哪五段？", a: "(1)任務。(2)狀況與行動方案。(3)我軍行動方案之分析。(4)我軍行動方案之比較。(5)結論（決心）。" },
@@ -703,7 +704,7 @@ const RAW_QUESTIONS = [
     { id: 87, diff: "hard", q: "請問陸軍司令部「連主檢資訊系統」連級權責為何？", a: "(1)運用系統回報每月連主檢新增裝備故障狀況。\n(2)運用系統掌握各類裝備保修工令及申補憑單。\n(3)運用系統調製每月「主要裝備狀況報告表」。\n(4)反映單位執行窒礙與研改建議。" },
     { id: 88, diff: "hard", q: "推行主檢系統後，連隊各項紙本表單，應如何存查？", a: "(1)保15－002表（原始檢查紀錄）一式一份，聯隊統一存查。\n(2)新增損壞項目報告表（主官批示）一式一份，連隊統一存查。\n(3)主要裝備狀況報告表（主官批示）一式一份，連隊統一存查。\n(4)保15－002表（系統產製）一式一份，裝備資料袋。\n(5)裝備申撥補狀態表，視需求列印，由系統線上查詢。" },
     { id: 89, diff: "hard", q: "推行主檢系統後，原欠撥憑單突然消失該如何處置？", a: "(1)詢問二級廠該項料件是否已經開撥？\n(2)詢問二級廠該筆憑單是否已經撤銷？\n(3)詢問二級廠是否為無效憑單？" },
-    { id: 90, diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "(1)界定戰場空間之全般概念。\n(2)確定「作戰地區」、「利害地區」之範圍。\n(3)確認作業詳盡之程度。\n(4)準備作業資料。" }
+    { id: 90, diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "(1)界定戰場空間之全般概念。\n(2)確定「作戰地區」、「利害地區」之範圍。\n(3)確認作業詳盡之程度。(4)準備作業資料。" }
 ];
 
 let masteredSet = new Set();
