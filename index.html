@@ -101,12 +101,12 @@
         .range-inputs input { width: 50%; }
         .total-hint { font-size: 0.85rem; color: var(--primary); font-weight: 600; margin-top: 0.4rem; text-align: right; }
         
+        /* 標準按鈕規格調整 */
         .btn {
             display: inline-flex;
             justify-content: center;
             align-items: center;
             gap: 0.35rem;
-            width: 100%;
             padding: 0.7rem 1.25rem;
             background-color: var(--primary);
             color: #fff;
@@ -125,6 +125,32 @@
         .btn-success { background-color: var(--success); color: #fff; }
         .btn-purple { background-color: var(--purple); color: #fff; }
         .btn-danger { background-color: var(--danger); color: #fff; }
+        
+        /* 統一高度與外觀的偷看答案按鈕 */
+        .btn-peek {
+            background-color: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.7rem 1rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            transition: all 0.2s;
+        }
+        .btn-peek:hover {
+            background-color: #fde68a;
+        }
+        body.dark-mode .btn-peek {
+            background-color: #292524;
+            color: #fcd34d;
+            border-color: #78350f;
+        }
+
         .btn-text-sm {
             background: none;
             border: none;
@@ -187,6 +213,23 @@
         .feedback.correct { background-color: #dcfce7; border: 1px solid #bbf7d0; color: var(--success); }
         .feedback.wrong { background-color: #fee2e2; border: 1px solid #fecaca; color: var(--danger); }
         .feedback-title { font-weight: bold; font-size: 1rem; margin-bottom: 0.4rem; }
+        
+        /* 偷看答案面板 */
+        .peek-box {
+            margin-top: 1rem;
+            padding: 0.9rem 1rem;
+            background-color: #f8fafc;
+            border: 1.5px dashed var(--warning);
+            border-radius: 8px;
+            color: var(--text);
+        }
+        body.dark-mode .peek-box {
+            background-color: #1e293b;
+            border-color: #d97706;
+        }
+        .peek-title { font-weight: 700; font-size: 0.9rem; color: var(--warning); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.3rem; }
+        .peek-content { font-size: 0.92rem; line-height: 1.6; word-break: break-all; white-space: pre-wrap; color: var(--text); }
+
         .diff-view { background: var(--card-bg); border: 1px solid var(--border); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.92rem; line-height: 1.6; word-break: break-all; }
         
         .card-stage {
@@ -437,12 +480,28 @@
         <div class="question-box" id="quiz-question"></div>
         <textarea id="quiz-answer" placeholder="請輸入答案..." oninput="saveCurrentDraft(this.value)"></textarea>
         
-        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
-            <button class="btn btn-secondary" id="btn-prev" style="width: auto; min-width: 95px;">⬅️ 上一題</button>
-            <button class="btn btn-skip hidden" id="btn-skip">⏭️ 熟記跳過</button>
-            <button class="btn btn-warning" id="btn-show-answer" type="button" style="width: auto; padding: 0.7rem 1rem;" title="偷看正確答案">👀 偷看正確答案</button>
-            <button class="btn" id="btn-submit">提交答案</button>
-            <button class="btn btn-success hidden" id="btn-next">下一題 ➡️</button>
+        <!-- 合理排版的按鈕列：左右分群 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <!-- 左側操作群組 -->
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-secondary" id="btn-prev" style="width: auto;">⬅️ 上一題</button>
+                <button class="btn btn-skip hidden" id="btn-skip">⏭️ 熟記跳過</button>
+                <!-- 僅已熟記題目顯示的精緻按鈕 -->
+                <button class="btn-peek hidden" id="btn-peek-answer" type="button" title="偷看正確答案">
+                    👀 偷看答案
+                </button>
+            </div>
+            <!-- 右側提交/下一題群組 -->
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="btn" id="btn-submit" style="width: auto;">提交答案</button>
+                <button class="btn btn-success hidden" id="btn-next" style="width: auto;">下一題 ➡️</button>
+            </div>
+        </div>
+
+        <!-- 偷看答案顯示面板 -->
+        <div id="quiz-peek-display" class="peek-box hidden">
+            <div class="peek-title">🤫 標準答案預覽：</div>
+            <div class="peek-content" id="peek-text-content"></div>
         </div>
 
         <div id="quiz-feedback" class="feedback hidden"></div>
@@ -616,7 +675,7 @@ const RAW_QUESTIONS = [
     { id: 59, diff: "mid", q: "何謂後勤判斷？", a: "後勤判斷係依據情報與作戰判斷，分析與研判所有可能影響任務達成之後勤因素，用以判定現有後勤能量能否支援作戰；何案最能獲得後勤有效之支援，並提出克服後勤支援困難之建議。" },
     { id: 60, diff: "mid", q: "術科教學法區分哪幾種？", a: "(1)示範摹擬法、(2)觀摩比較法、(3)學生導師法、(4)統一練習法、(5)相互競賽法、(6)對抗演練法、(7)狀況誘導法、(8)檢查糾正法、(9)個別教學法。" },
     { id: 61, diff: "mid", q: "陸軍司令部推行 連主檢資訊系統 目的為何？", a: "藉資訊系統驗證各級單位執行成效，並建立自評督管機制，以務實裝備妥善管理。" },
-    { id: 62, diff: "mid", q: "敘述主檢系統裝備故障報告功能目的？", a: "提供連隊線上回報裝備故障狀況及停用判定：運用系統向二級廠回報裝備檢查缺失，取代原專「保15－002 表」紙本送交二級廠審查作業。" },
+    { id: 62, diff: "mid", q: "敘述主檢系統裝備故障報告功能目的？", a: "提供連隊線上回報裝備故障狀況及停用判定：運用系統向二級廠回報裝備檢查缺失，取代原「保15－002 表」紙本送交二級廠審查作業。" },
     { id: 63, diff: "mid", q: "敘述主檢系統新增損壞查詢功能目的？", a: "運用系統列印當月份新增損壞項目表，由主官批閱管制，取代現行逐份批示保表。" },
     { id: 64, diff: "mid", q: "何謂關鍵行動？", a: "綜合分析作戰之「特定行動」及「推斷行動」之必然性、重要性、時序性與限制因素等後，即可歸納得出攸關本次作戰成敗之「關鍵行動」。" },
     { id: 65, diff: "mid", q: "研擬行動方案步驟，除分析敵、我相對戰力及研擬各種行動方案選項外，還有那些？", a: "(1)初步規劃行動方案所需兵力及部署。(2)研擬行動方案作戰構想。(3)律定行動方案任務編組。(4)完成行動方案文字敘述及圖解標繪。" },
@@ -644,7 +703,7 @@ const RAW_QUESTIONS = [
     { id: 87, diff: "hard", q: "請問陸軍司令部「連主檢資訊系統」連級權責為何？", a: "(1)運用系統回報每月連主檢新增裝備故障狀況。\n(2)運用系統掌握各類裝備保修工令及申補憑單。\n(3)運用系統調製每月「主要裝備狀況報告表」。\n(4)反映單位執行窒礙與研改建議。" },
     { id: 88, diff: "hard", q: "推行主檢系統後，連隊各項紙本表單，應如何存查？", a: "(1)保15－002表（原始檢查紀錄）一式一份，聯隊統一存查。\n(2)新增損壞項目報告表（主官批示）一式一份，連隊統一存查。\n(3)主要裝備狀況報告表（主官批示）一式一份，連隊統一存查。\n(4)保15－002表（系統產製）一式一份，裝備資料袋。\n(5)裝備申撥補狀態表，視需求列印，由系統線上查詢。" },
     { id: 89, diff: "hard", q: "推行主檢系統後，原欠撥憑單突然消失該如何處置？", a: "(1)詢問二級廠該項料件是否已經開撥？\n(2)詢問二級廠該筆憑單是否已經撤銷？\n(3)詢問二級廠是否為無效憑單？" },
-    { id: 90, diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "(1)界定戰場空間之全般概念。\n(2)確定「作戰地區」、「利害地區」之範圍。\n(3)確認作業詳盡之程度。(4)準備作業資料。" }
+    { id: 90, diff: "hard", q: "「界定戰場空間」之作業步驟有哪些？", a: "(1)界定戰場空間之全般概念。\n(2)確定「作戰地區」、「利害地區」之範圍。\n(3)確認作業詳盡之程度。\n(4)準備作業資料。" }
 ];
 
 let masteredSet = new Set();
@@ -933,17 +992,20 @@ function showQuestion() {
     if (chkMastered) chkMastered.checked = isMastered;
 
     const skipBtn = document.getElementById('btn-skip');
-    const showAnswerBtn = document.getElementById('btn-show-answer');
+    const peekBtn = document.getElementById('btn-peek-answer');
+    const peekDisplay = document.getElementById('quiz-peek-display');
     const ansArea = document.getElementById('quiz-answer');
     const submitBtn = document.getElementById('btn-submit');
     const nextBtn = document.getElementById('btn-next');
     const feedback = document.getElementById('quiz-feedback');
 
+    if (peekDisplay) peekDisplay.classList.add('hidden');
+
     if (record && record.isSubmitted) {
         ansArea.value = record.userAnswer || '';
         ansArea.disabled = true;
         if (submitBtn) submitBtn.classList.add('hidden');
-        if (showAnswerBtn) showAnswerBtn.classList.add('hidden');
+        if (peekBtn) peekBtn.classList.add('hidden');
         if (skipBtn) skipBtn.classList.add('hidden');
         if (nextBtn) nextBtn.classList.remove('hidden');
         if (feedback) {
@@ -955,10 +1017,14 @@ function showQuestion() {
         ansArea.value = (record && record.userAnswer) ? record.userAnswer : '';
         ansArea.disabled = false;
         if (submitBtn) submitBtn.classList.remove('hidden');
-        if (showAnswerBtn) showAnswerBtn.classList.remove('hidden');
         if (nextBtn) nextBtn.classList.add('hidden');
         if (feedback) feedback.className = 'feedback hidden';
         
+        if (peekBtn) {
+            if (isMastered) peekBtn.classList.remove('hidden');
+            else peekBtn.classList.add('hidden');
+        }
+
         if (skipBtn) {
             if (isMastered) skipBtn.classList.remove('hidden');
             else skipBtn.classList.add('hidden');
@@ -968,12 +1034,51 @@ function showQuestion() {
     saveQuizSession();
 }
 
+function toggleMastered(checked) {
+    const item = quizList[currentIndex];
+    if (checked) {
+        masteredSet.add(item.id);
+    } else {
+        masteredSet.delete(item.id);
+    }
+    saveAllData();
+
+    const peekBtn = document.getElementById('btn-peek-answer');
+    const peekDisplay = document.getElementById('quiz-peek-display');
+    const record = userAnswers[currentIndex];
+    
+    if (peekBtn && (!record || !record.isSubmitted)) {
+        if (checked) peekBtn.classList.remove('hidden');
+        else {
+            peekBtn.classList.add('hidden');
+            if (peekDisplay) peekDisplay.classList.add('hidden');
+        }
+    }
+}
+
+function togglePeekAnswer() {
+    const item = quizList[currentIndex];
+    const peekDisplay = document.getElementById('quiz-peek-display');
+    const peekText = document.getElementById('peek-text-content');
+    if (!peekDisplay || !peekText) return;
+
+    if (peekDisplay.classList.contains('hidden')) {
+        peekText.textContent = item.a;
+        peekDisplay.classList.remove('hidden');
+    } else {
+        peekDisplay.classList.add('hidden');
+    }
+}
+
 function submitAnswer() {
     const rawU = document.getElementById('quiz-answer').value;
     const item = quizList[currentIndex];
     const rawS = item.a;
     const feedback = document.getElementById('quiz-feedback');
+    const peekDisplay = document.getElementById('quiz-peek-display');
     
+    if (peekDisplay) peekDisplay.classList.add('hidden');
+
     let isCorrect = false;
 
     if (activeMatchRule === 'exact') {
@@ -1041,17 +1146,10 @@ function submitAnswer() {
     }
     document.getElementById('quiz-answer').disabled = true;
     document.getElementById('btn-submit').classList.add('hidden');
-    document.getElementById('btn-show-answer').classList.add('hidden');
+    const peekBtn = document.getElementById('btn-peek-answer');
+    if (peekBtn) peekBtn.classList.add('hidden');
     document.getElementById('btn-next').classList.remove('hidden');
     saveQuizSession();
-}
-
-function revealAnswer() {
-    const item = quizList[currentIndex];
-    const ansArea = document.getElementById('quiz-answer');
-    ansArea.value = item.a;
-    saveCurrentDraft(item.a);
-    submitAnswer();
 }
 
 function saveCurrentDraft(val) {
@@ -1464,7 +1562,6 @@ function toggleMasteredFromBank(qId, isChecked) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    localStorage.removeItem('quiz_session_nco_general'); // 自動清除舊暫存確保按鈕正常顯示
     renderDashboard();
     renderStreakBadge();
     handleModeChange();
@@ -1480,7 +1577,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindClick('btn-show-mastered', showMasteredList);
     bindClick('btn-hide-mastered', hideMasteredList);
     bindClick('btn-submit', submitAnswer);
-    bindClick('btn-show-answer', revealAnswer);
+    bindClick('btn-peek-answer', togglePeekAnswer);
     bindClick('btn-next', nextQuestion);
     bindClick('btn-prev', () => { if (currentIndex > 0) { currentIndex--; showQuestion(); } });
     bindClick('btn-skip', () => { nextQuestion(); });
