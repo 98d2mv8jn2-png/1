@@ -36,7 +36,7 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", "微軟正黑體", sans-serif;
             background-color: var(--bg);
             color: var(--text);
             display: flex;
@@ -413,9 +413,9 @@
             <button class="btn btn-secondary no-print" onclick="window.print()" style="width:auto; padding:0.4rem 0.8rem; font-size:0.85rem;">🖨️ 列印此清單</button>
         </div>
         <div class="filter-tabs no-print">
-            <button class="filter-tab active" id="tab-all" onclick="switchBankFilter('all')">全部 (90)</button>
-            <button class="filter-tab" id="tab-unmastered" onclick="switchBankFilter('unmastered')">未熟記</button>
-            <button class="filter-tab" id="tab-mastered" onclick="switchBankFilter('mastered')">已熟記</button>
+            <button class="filter-tab active" id="tab-all" onclick="switchBankFilter('all')">全部 (<span id="count-bank-all">90</span>)</button>
+            <button class="filter-tab" id="tab-unmastered" onclick="switchBankFilter('unmastered')">未熟記 (<span id="count-bank-unmastered">0</span>)</button>
+            <button class="filter-tab" id="tab-mastered" onclick="switchBankFilter('mastered')">已熟記 (<span id="count-bank-mastered">0</span>)</button>
         </div>
         <div id="mastered-list-container" class="mastered-list"></div>
         <button class="btn btn-secondary no-print" id="btn-hide-mastered" type="button" style="margin-top: 1rem;">返回主頁</button>
@@ -973,13 +973,9 @@ function submitAnswer() {
     let isCorrect = false;
 
     if (activeMatchRule === 'exact') {
-        // 🎯 嚴格模式：一字不漏比對
         isCorrect = (rawU.trim() === rawS.trim());
     } else {
-        // 💡 寬鬆模式：免編號標點、順序不拘、支援點對點交錯對應
-        // 1. 將標準答案與使用者答案拆解成多個要點 (支援以 (1), (2) 或換行 \n 分隔)
         const parsePoints = (text) => {
-            // 用正規表達式依據括號數字或換行切開各個要點
             let parts = text.split(/(?=\(\d+\))/g);
             if (parts.length <= 1) {
                 parts = text.split(/[\n;；]+/);
@@ -991,19 +987,14 @@ function submitAnswer() {
         const userCleanFull = rawU.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()v、，。；：\s]/g, '');
 
         if (standardPoints.length === 0) {
-            // 單句簡答題型
             const cleanS = rawS.replace(/[\d０-９]+[\.．、]/g, '').replace(/[（）()、，。；：\s]/g, '');
             isCorrect = (userCleanFull.length >= 2 && cleanS.includes(userCleanFull));
         } else {
-            // 多要點題型：檢查每個標準要點是否都有在使用者輸入中出現（順序不拘）
-            // 只要大多數關鍵字點都有對到即可通過
             let matchedCount = 0;
             standardPoints.forEach(sp => {
-                // 檢查使用者輸入是否包含此要點的核心字元片段
                 if (userCleanFull.includes(sp) || (sp.length > 3 && userCleanFull.includes(sp.substring(0, Math.floor(sp.length * 0.7))))) {
                     matchedCount++;
                 } else {
-                    // 嘗試比對要點內的關鍵詞組
                     let subMatch = false;
                     for (let i = 0; i < sp.length - 1; i++) {
                         let chunk = sp.substr(i, 3);
@@ -1015,7 +1006,6 @@ function submitAnswer() {
                     if (subMatch) matchedCount++;
                 }
             });
-            // 判定門檻：若要點數小於等於2全部要對，若大於2則對超過一半或符合比例即算對
             const threshold = standardPoints.length <= 2 ? standardPoints.length : Math.ceil(standardPoints.length * 0.7);
             isCorrect = (matchedCount >= threshold);
         }
@@ -1414,6 +1404,19 @@ function switchBankFilter(filter) {
 function renderMasteredList() {
     const container = document.getElementById('mastered-list-container');
     if (!container) return;
+
+    // 動態更新三個標籤的題數備註
+    const totalCount = RAW_QUESTIONS.length;
+    const masteredCount = RAW_QUESTIONS.filter(q => masteredSet.has(q.id)).length;
+    const unmasteredCount = totalCount - masteredCount;
+
+    const elAll = document.getElementById('count-bank-all');
+    const elUnm = document.getElementById('count-bank-unmastered');
+    const elMas = document.getElementById('count-bank-mastered');
+    if (elAll) elAll.textContent = totalCount;
+    if (elUnm) elUnm.textContent = unmasteredCount;
+    if (elMas) elMas.textContent = masteredCount;
+
     let displayList = RAW_QUESTIONS;
     if (currentBankFilter === 'mastered') displayList = RAW_QUESTIONS.filter(q => masteredSet.has(q.id));
     else if (currentBankFilter === 'unmastered') displayList = RAW_QUESTIONS.filter(q => !masteredSet.has(q.id));
@@ -1435,7 +1438,7 @@ function renderMasteredList() {
                     </label>
                 </div>
                 <div style="font-weight:600; font-size:0.95rem; margin-bottom:0.4rem;">${escapeHtml(item.q)}</div>
-                <div style="font-size:0.9qrem; color:#334155; background:#f8fafc; padding:0.5rem; border-left:3px solid var(--primary); border-radius:4px; white-space: pre-wrap;">${escapeHtml(item.a)}</div>
+                <div style="font-size:0.9rem; color:#334155; background:#f8fafc; padding:0.5rem; border-left:3px solid var(--primary); border-radius:4px; white-space: pre-wrap;">${escapeHtml(item.a)}</div>
             </div>
         `;
     }).join('');
